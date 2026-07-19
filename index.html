@@ -1,0 +1,1297 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clínica Sēntia — Painel</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --ink:#241511;
+  --ink-2:#5B2A1B;
+  --paper:#F6EEE6;
+  --card:#FFFCF9;
+  --terracotta:#C1603C;
+  --terracotta-deep:#8B3E24;
+  --terracotta-light:#F1DBCB;
+  --sage:#5C7A63;
+  --sage-light:#E1E8DF;
+  --ochre:#B4872F;
+  --ochre-light:#F0E3C7;
+  --rust:#A6432B;
+  --rust-light:#F0DAD3;
+  --text:#2C1D17;
+  --text-soft:#7A6459;
+  --line:rgba(44,29,23,0.15);
+  --line-soft:rgba(44,29,23,0.08);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(circle at 100% 0%, rgba(193,96,60,0.10), transparent 45%),
+    radial-gradient(circle at 0% 100%, rgba(139,62,36,0.07), transparent 40%),
+    var(--paper);
+  color:var(--text);
+  font-family:'Montserrat',sans-serif;
+  min-height:100vh;
+}
+h1,h2,h3,.display{
+  font-family:'Montserrat',sans-serif;
+  font-weight:600;
+  letter-spacing:-0.01em;
+}
+.section-head h1{
+  background:linear-gradient(100deg, var(--text) 30%, var(--terracotta-deep) 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+
+/* ---------- SHELL ---------- */
+#app{
+  display:flex;
+  min-height:100vh;
+}
+#sidebar{
+  width:232px;
+  flex-shrink:0;
+  background:linear-gradient(155deg, var(--ink) 0%, var(--ink-2) 62%, var(--terracotta) 140%);
+  color:#F3E8DF;
+  padding:28px 18px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:sticky;
+  top:0;
+  height:100vh;
+}
+#sidebar .brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  font-family:'Montserrat',sans-serif;
+  font-size:19px;
+  font-weight:700;
+  color:#fff;
+  margin-bottom:2px;
+  padding:0 10px;
+}
+#sidebar .brand .brand-mark{flex-shrink:0;}
+#sidebar .brand .brand-text{display:flex; flex-direction:column; line-height:1.15;}
+#sidebar .brand small{
+  display:block;
+  font-family:'Montserrat',sans-serif;
+  font-weight:400;
+  font-size:11px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#D9B7A3;
+  margin-top:4px;
+}
+.nav-divider{height:1px;background:rgba(255,255,255,.12);margin:16px 10px;}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:11px 12px;
+  border-radius:9px;
+  cursor:pointer;
+  font-family:'Montserrat',sans-serif;
+  font-size:14.5px;
+  font-weight:500;
+  color:#E4CFC1;
+  transition:background .15s, color .15s;
+  user-select:none;
+}
+.nav-item svg{flex-shrink:0; opacity:.85;}
+.nav-item:hover{background:rgba(255,255,255,.08); color:#fff;}
+.nav-item.active{background:linear-gradient(120deg,#FBF3EC,#F1DBCB); color:var(--terracotta-deep);}
+.nav-item.active svg{opacity:1;}
+#sidebar .foot{
+  margin-top:auto;
+  padding:10px;
+  font-size:11px;
+  color:#C79A85;
+  line-height:1.5;
+}
+
+#main{
+  flex:1;
+  padding:38px 46px 70px;
+  max-width:1180px;
+}
+.section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-bottom:28px;
+  gap:20px;
+  flex-wrap:wrap;
+}
+.section-head h1{font-size:30px; margin:0 0 6px;}
+.section-head p{margin:0; color:var(--text-soft); font-size:14px; max-width:520px;}
+.eyebrow{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  color:var(--terracotta-deep);
+  font-weight:600;
+  margin-bottom:6px;
+}
+
+.btn{
+  border:none;
+  cursor:pointer;
+  font-family:'Montserrat',sans-serif;
+  font-weight:600;
+  font-size:13px;
+  padding:10px 16px;
+  border-radius:8px;
+  background:linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-deep) 100%);
+  color:#fff;
+  transition:transform .1s, filter .15s;
+}
+.btn:hover{filter:brightness(1.08);}
+.btn:active{transform:scale(.97);}
+.btn.ghost{background:transparent; color:var(--text); border:1px solid var(--line);}
+.btn.ghost:hover{background:var(--card); border-color:var(--terracotta);}
+.btn.danger{background:transparent; color:var(--rust); border:1px solid var(--rust-light);}
+.btn.danger:hover{background:var(--rust-light);}
+.btn.sm{padding:6px 11px; font-size:12px; border-radius:6px;}
+.btn.icon{padding:7px 9px; line-height:0;}
+
+input,select,textarea{
+  font-family:'Montserrat',sans-serif;
+  font-size:13.5px;
+  border:1px solid var(--line);
+  background:var(--card);
+  border-radius:7px;
+  padding:9px 11px;
+  color:var(--text);
+  outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--terracotta); box-shadow:0 0 0 3px var(--terracotta-light);}
+label.field-label{font-size:11.5px; font-weight:600; color:var(--text-soft); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:5px;}
+
+/* ---------- PAGAMENTOS: drawer grid ---------- */
+.year-switch{display:flex; align-items:center; gap:12px; font-family:'Montserrat',sans-serif; font-size:19px;}
+.year-switch button{background:none;border:none;cursor:pointer;color:var(--text-soft);font-size:17px;padding:2px 6px;border-radius:6px;}
+.year-switch button:hover{background:var(--terracotta-light); color:var(--terracotta-deep);}
+
+.drawer-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:34px 30px;
+  margin:36px 6px 46px 0;
+  perspective:1400px;
+}
+.drawer{
+  position:relative;
+  background:var(--card);
+  border-radius:4px 10px 10px 4px;
+  border:1px solid var(--line);
+  padding:18px 16px 16px;
+  cursor:pointer;
+  transform:rotateZ(0deg) translate(0,0);
+  box-shadow:
+    5px 5px 0 -1px var(--paper), 5px 5px 0 0 var(--line-soft),
+    10px 10px 0 -1px var(--paper), 10px 10px 0 0 var(--line-soft);
+  transition:transform .22s ease, box-shadow .22s ease;
+  min-height:118px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.drawer:before{
+  content:'';
+  position:absolute;
+  left:0; top:14px; bottom:14px;
+  width:4px;
+  border-radius:2px;
+  background:var(--empty-c, #C7CFC7);
+}
+.drawer.status-empty:before{background:#C7CFC7;}
+.drawer.status-pending:before{background:var(--ochre);}
+.drawer.status-paid:before{background:var(--sage);}
+.drawer:hover{
+  transform:translate(-3px,-5px);
+  box-shadow:
+    8px 8px 0 -1px var(--paper), 8px 8px 0 0 var(--line-soft),
+    16px 16px 0 -1px var(--paper), 16px 16px 0 0 var(--line-soft),
+    0 18px 30px -12px rgba(139,62,36,.35);
+}
+.drawer .m-name{font-family:'Montserrat',sans-serif; font-size:17px; font-weight:600; margin-left:10px;}
+.drawer .m-total{font-family:'IBM Plex Mono',monospace; font-size:19px; margin-left:10px; margin-top:10px;}
+.drawer .m-sub{font-size:11px; color:var(--text-soft); margin-left:10px; margin-top:3px;}
+.drawer .m-tag{
+  align-self:flex-start;
+  margin-left:10px;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  font-weight:600;
+  padding:3px 7px;
+  border-radius:20px;
+  margin-top:8px;
+}
+.drawer.status-empty .m-tag{background:#EDEFEA;color:#8B968E;}
+.drawer.status-pending .m-tag{background:var(--ochre-light);color:#8A5A22;}
+.drawer.status-paid .m-tag{background:var(--sage-light);color:var(--sage);}
+
+/* dashboard */
+.dash-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:34px;}
+.dash-card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px;}
+.dash-card .label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-soft); font-weight:600;}
+.dash-card .value{font-family:'IBM Plex Mono',monospace; font-size:23px; margin-top:8px;}
+.dash-card.paid .value{color:var(--sage);}
+.dash-card.pending .value{color:var(--ochre);}
+
+.bars{display:flex; align-items:flex-end; gap:8px; height:120px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 14px 8px; margin-bottom:16px;}
+.bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:6px;}
+.bar-col .bar{width:100%; max-width:20px; border-radius:3px 3px 0 0; background:linear-gradient(180deg, var(--terracotta) 0%, var(--terracotta-deep) 100%); min-height:2px;}
+.bar-col .lbl{font-size:9.5px; color:var(--text-soft);}
+
+.people-row{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:10px;}
+.person-pill{background:var(--card); border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:13px; display:flex; gap:8px; align-items:center;}
+.person-pill .amt{font-family:'IBM Plex Mono',monospace; font-weight:600;}
+
+/* ---------- MODAL ---------- */
+#overlay{
+  position:fixed; inset:0; background:rgba(24,37,52,.55);
+  display:none; align-items:center; justify-content:center; z-index:100; padding:24px;
+}
+#overlay.open{display:flex;}
+.modal{
+  background:var(--paper);
+  border-radius:14px;
+  width:100%; max-width:560px;
+  max-height:86vh;
+  overflow-y:auto;
+  padding:28px 28px 26px;
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.4);
+}
+.modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
+.modal-head h2{margin:0; font-size:22px;}
+.modal-close{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-soft); line-height:1;padding:4px;}
+.modal-close:hover{color:var(--rust);}
+
+.entry-row{
+  display:flex; align-items:center; gap:10px;
+  background:var(--card); border:1px solid var(--line); border-radius:8px;
+  padding:10px 12px; margin-bottom:8px;
+}
+.entry-row .desc{flex:1; font-size:13.5px;}
+.entry-row .desc .who{display:block; font-size:11px; color:var(--text-soft); margin-top:2px;}
+.entry-row .valor{font-family:'IBM Plex Mono',monospace; font-size:13.5px; min-width:80px; text-align:right;}
+.status-chip{
+  border:none; cursor:pointer; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+  padding:5px 9px; border-radius:20px;
+}
+.status-chip.paid{background:var(--sage-light); color:var(--sage);}
+.status-chip.pending{background:var(--ochre-light); color:#8A5A22;}
+
+.add-form{
+  display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; margin-top:16px; padding-top:16px; border-top:1px dashed var(--line);
+}
+.add-form .full{grid-column:1/-1;}
+.month-totals{display:flex; gap:16px; margin-top:16px; font-size:12.5px; color:var(--text-soft);}
+.month-totals b{color:var(--text); font-family:'IBM Plex Mono',monospace;}
+
+.empty-state{
+  border:1px dashed var(--line); border-radius:10px; padding:26px; text-align:center;
+  color:var(--text-soft); font-size:13.5px; background:rgba(255,255,255,.4);
+}
+
+/* ---------- Sub tabs ---------- */
+.subtabs{display:flex; gap:6px; margin-bottom:22px; border-bottom:1px solid var(--line);}
+.subtab{padding:9px 4px; margin-right:18px; font-size:13.5px; font-weight:600; color:var(--text-soft); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;}
+.subtab.active{color:var(--ink); border-color:var(--terracotta);}
+
+/* ---------- Generic table/list ---------- */
+.card-list{display:flex; flex-direction:column; gap:10px;}
+.item-card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;}
+.item-card .main{flex:1; min-width:180px;}
+.item-card .title{font-family:'Montserrat',sans-serif; font-weight:600; font-size:15.5px;}
+.item-card .meta{font-size:12px; color:var(--text-soft); margin-top:3px; display:flex; gap:10px; flex-wrap:wrap;}
+.badge{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:4px 9px; border-radius:20px;}
+.badge.b-plan{background:#E7E9E4; color:#67716A;}
+.badge.b-prog{background:var(--ochre-light); color:#8A5A22;}
+.badge.b-done{background:var(--sage-light); color:var(--sage);}
+.badge.b-adiado{background:var(--rust-light); color:var(--rust);}
+.row-actions{display:flex; gap:6px;}
+
+.inline-form{display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:20px;}
+.inline-form .full{grid-column:1/-1;}
+.inline-form-actions{grid-column:1/-1; display:flex; justify-content:flex-end;}
+
+/* ---------- Marca ---------- */
+.swatch-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:14px; margin-bottom:18px;}
+.swatch{border-radius:10px; overflow:hidden; border:1px solid var(--line); background:var(--card);}
+.swatch .fill{height:64px; position:relative; cursor:pointer;}
+.swatch .info{padding:8px 10px; font-size:11.5px;}
+.swatch .info .hex{font-family:'IBM Plex Mono',monospace; color:var(--text-soft);}
+.swatch .rm{position:absolute; top:4px; right:4px; background:rgba(255,255,255,.75); border:none; border-radius:50%; width:18px; height:18px; font-size:11px; cursor:pointer; line-height:0;}
+
+.chip-input-wrap{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;}
+.chip{background:var(--terracotta-light); color:var(--terracotta-deep); font-size:12.5px; font-weight:600; padding:7px 12px; border-radius:20px; display:flex; align-items:center; gap:8px;}
+.chip button{background:none;border:none;color:var(--terracotta-deep);cursor:pointer;font-size:13px;line-height:0;}
+
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
+.panel{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px;}
+.panel h3{margin:0 0 12px; font-size:15px;}
+.font-preview{border:1px solid var(--line); border-radius:8px; padding:16px; margin-top:10px; background:var(--paper);}
+
+/* ---------- Etapas / obra ---------- */
+.timeline{display:flex; flex-direction:column; gap:0; margin-top:6px;}
+.tl-item{display:flex; gap:18px; position:relative; padding-bottom:26px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-dot-col{display:flex; flex-direction:column; align-items:center; width:16px;}
+.tl-dot{width:14px; height:14px; border-radius:50%; border:3px solid var(--line); background:#fff; flex-shrink:0; margin-top:4px;}
+.tl-item.done .tl-dot{background:var(--sage); border-color:var(--sage);}
+.tl-item.progress .tl-dot{background:var(--ochre); border-color:var(--ochre);}
+.tl-line{flex:1; width:2px; background:var(--line); margin-top:4px;}
+.tl-item:last-child .tl-line{display:none;}
+.tl-body{flex:1; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+.tl-body .top-row{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
+.tl-body input.etapa-name{border:none; background:transparent; font-family:'Montserrat',sans-serif; font-size:15.5px; font-weight:600; padding:2px 0; width:auto; min-width:120px;}
+.progress-bar-bg{height:7px; background:#E9ECE7; border-radius:6px; margin:10px 0 8px; overflow:hidden;}
+.progress-bar-fill{height:100%; background:var(--sage); border-radius:6px; transition:width .2s;}
+.tl-body textarea{width:100%; margin-top:8px; min-height:44px; resize:vertical;}
+
+.overall-bar{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:28px;}
+
+/* ---------- Kanban ---------- */
+.kanban{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; align-items:start;}
+.kcol{background:rgba(255,255,255,.5); border:1px solid var(--line); border-radius:12px; padding:14px;}
+.kcol h3{font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-soft); margin:2px 0 12px; display:flex; justify-content:space-between;}
+.kcard{background:var(--card); border:1px solid var(--line); border-radius:9px; padding:11px 12px; margin-bottom:10px; box-shadow:0 1px 0 var(--line-soft);}
+.kcard .ktitle{font-family:'Montserrat',sans-serif; font-size:14.5px; font-weight:500;}
+.kcard .kdate{font-size:11px; color:var(--text-soft); margin-top:5px; font-family:'IBM Plex Mono',monospace;}
+.kcard .kactions{display:flex; justify-content:space-between; margin-top:9px;}
+.kcard .kactions .move{display:flex; gap:4px;}
+.kcard .kactions button{background:none; border:1px solid var(--line); border-radius:5px; cursor:pointer; font-size:11px; padding:3px 7px; color:var(--text-soft);}
+.kcard .kactions button:hover{border-color:var(--sage); color:var(--sage);}
+.kadd{display:flex; gap:6px; margin-bottom:12px;}
+.kadd input{flex:1;}
+
+/* ---------- Ideias ---------- */
+.idea-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px;}
+.idea-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-top:4px solid var(--terracotta);
+  border-radius:8px;
+  padding:16px 16px 14px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.idea-card .title{font-family:'Montserrat',sans-serif; font-size:15px; font-weight:600;}
+.idea-card .desc{font-size:12.5px; color:var(--text-soft); line-height:1.5; flex:1;}
+.idea-card .bottom{display:flex; justify-content:space-between; align-items:center; margin-top:4px;}
+
+/* ---------- Arquivos e links ---------- */
+.link-title{display:flex; align-items:center; gap:8px;}
+.link-title a{color:var(--terracotta-deep); text-decoration:none; font-weight:600;}
+.link-title a:hover{text-decoration:underline;}
+
+@media (max-width:880px){
+  #app{flex-direction:column;}
+  #sidebar{width:100%; height:auto; position:relative; flex-direction:row; overflow-x:auto; padding:14px;}
+  #sidebar .brand,#sidebar .foot,.nav-divider{display:none;}
+  .nav-item{white-space:nowrap;}
+  #main{padding:26px 18px 60px;}
+  .drawer-grid{grid-template-columns:repeat(2,1fr);}
+  .dash-grid{grid-template-columns:repeat(2,1fr);}
+  .two-col{grid-template-columns:1fr;}
+  .kanban{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="sidebar">
+    <div class="brand">
+      <svg class="brand-mark" width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="34" height="34" rx="10" fill="url(#logoGrad)"/>
+        <path d="M22.5 12.2c-1.1-1.3-2.7-2-4.6-2-3 0-4.9 1.5-4.9 3.7 0 2.1 1.7 2.9 4.3 3.5l1.4.3c1.6.4 2.3.8 2.3 1.7 0 1-1 1.6-2.5 1.6-1.7 0-3-.7-3.9-1.9l-2 1.6c1.2 1.8 3.3 2.8 5.8 2.8 3.2 0 5.3-1.6 5.3-4 0-2.1-1.4-3.1-4.1-3.7l-1.4-.3c-1.7-.4-2.5-.8-2.5-1.7 0-.9.9-1.4 2.2-1.4 1.4 0 2.5.6 3.3 1.6l1.8-1.8z" fill="#FBF3EC"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="34" y2="34" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#C1603C"/><stop offset="1" stop-color="#8B3E24"/>
+        </linearGradient></defs>
+      </svg>
+      <span class="brand-text">Sēntia<small>Sabs &amp; Vic</small></span>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" data-section="pagamentos">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+      Pagamentos
+    </div>
+    <div class="nav-item" data-section="contabilidade">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v5h5"/><path d="M8 13h8M8 17h5"/></svg>
+      Contabilidade
+    </div>
+    <div class="nav-item" data-section="marketing">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 3v3M16 3v3"/></svg>
+      Marketing
+    </div>
+    <div class="nav-item" data-section="marca">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9z" fill="currentColor" stroke="none" opacity=".9"/></svg>
+      Marca
+    </div>
+    <div class="nav-item" data-section="ideias">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.3 1 2.1V16h6v-.4c0-.8.4-1.5 1-2.1A6 6 0 0 0 12 3z"/></svg>
+      Ideias
+    </div>
+    <div class="nav-item" data-section="eventos">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4M16 3v4"/><path d="M8 15l2.5 2.5L16 12"/></svg>
+      Previsões &amp; Acontecimentos
+    </div>
+    <div class="nav-item" data-section="obra">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/></svg>
+      Etapas da Obra
+    </div>
+    <div class="nav-item" data-section="tarefas">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="12" y="3" width="9" height="8" rx="1.5"/><rect x="12" y="13" width="9" height="8" rx="1.5"/></svg>
+      Tarefas
+    </div>
+    <div class="nav-item" data-section="arquivos">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 4H4v16h16V8h-6z"/><path d="M10 4l4 4h6"/><path d="M9 13l6-6M9 13v-3h3"/></svg>
+      Arquivos e Links
+    </div>
+    <div class="foot">Dados salvos na nuvem do artefato — visíveis para quem abrir este painel.</div>
+  </div>
+
+  <div id="main"></div>
+</div>
+
+<div id="overlay"><div class="modal" id="modal-body"></div></div>
+
+<script>
+/* ============ STATE ============ */
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MONTHS_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+let state = {
+  currentYear: 2026,
+  payments: {},        // key "YYYY-M" -> [{id,desc,valor,pago,quem}]
+  calendar: [],         // {id,data,canal,tipo,titulo,status}
+  acoes: [],            // {id,titulo,objetivo,prazo,responsavel,status}
+  marca: { colors: [], sensations: [], voice: '', fontDisplay: '', fontBody: '' },
+  etapas: null,         // set to default on first load
+  tasks: [],            // {id,titulo,prazo,col} col: 0 fazer,1 fazendo,2 feito
+  ideias: [],           // {id,titulo,descricao,status}
+  contabilidade: [],    // {id,data,tipo,categoria,valor,nota,notas}
+  arquivos: [],         // {id,titulo,url,categoria,notas}
+  eventos: []           // {id,data,titulo,tipo,status,notas}
+};
+const DEFAULT_ETAPAS = [
+  'Planejamento e Projeto',
+  'Fundação e Estrutura',
+  'Instalações elétricas e hidráulicas',
+  'Acabamento e Revestimento',
+  'Mobiliário e Equipamentos',
+  'Inauguração'
+].map(n => ({id: uid(), nome: n, status: 'nao_iniciado', progresso: 0, notas: ''}));
+
+function uid(){ return 'id' + Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
+function fmtMoney(v){ return (Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+
+let saveTimer=null;
+function saveState(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{ await window.storage.set('clinica-state', JSON.stringify(state), true); }
+    catch(e){ console.error('erro ao salvar', e); }
+  }, 250);
+}
+
+async function loadState(){
+  try{
+    const res = await window.storage.get('clinica-state', true);
+    if(res && res.value){
+      const loaded = JSON.parse(res.value);
+      state = Object.assign(state, loaded);
+    }
+  }catch(e){ /* nada salvo ainda */ }
+  if(!state.etapas || !state.etapas.length) state.etapas = DEFAULT_ETAPAS;
+  if(!state.marca) state.marca = { colors: [], sensations: [], voice:'', fontDisplay:'', fontBody:'' };
+  if(!state.ideias) state.ideias = [];
+  if(!state.contabilidade) state.contabilidade = [];
+  if(!state.arquivos) state.arquivos = [];
+  if(!state.eventos) state.eventos = [];
+}
+
+/* ============ NAV ============ */
+let activeSection = 'pagamentos';
+let activeMktTab = 'calendario';
+
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    activeSection = item.dataset.section;
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    render();
+  });
+});
+
+function render(){
+  const main = document.getElementById('main');
+  if(activeSection==='pagamentos') return renderPagamentos(main);
+  if(activeSection==='contabilidade') return renderContabilidade(main);
+  if(activeSection==='marketing') return renderMarketing(main);
+  if(activeSection==='marca') return renderMarca(main);
+  if(activeSection==='ideias') return renderIdeias(main);
+  if(activeSection==='eventos') return renderEventos(main);
+  if(activeSection==='obra') return renderObra(main);
+  if(activeSection==='tarefas') return renderTarefas(main);
+  if(activeSection==='arquivos') return renderArquivos(main);
+}
+
+/* ============ MODAL HELPERS ============ */
+const overlay = document.getElementById('overlay');
+const modalBody = document.getElementById('modal-body');
+function openModal(html){
+  modalBody.innerHTML = html;
+  overlay.classList.add('open');
+}
+function closeModal(){ overlay.classList.remove('open'); modalBody.innerHTML=''; }
+overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+
+/* ============ PAGAMENTOS ============ */
+function monthKey(y,m){ return y+'-'+m; }
+function monthEntries(y,m){ return state.payments[monthKey(y,m)] || []; }
+
+function monthStatus(entries){
+  if(!entries.length) return 'empty';
+  return entries.every(e=>e.pago) ? 'paid' : 'pending';
+}
+
+function renderPagamentos(main){
+  const y = state.currentYear;
+  let yearTotal=0, yearPaid=0, yearPending=0;
+  const perPerson = {};
+  const monthTotals = [];
+
+  for(let m=0;m<12;m++){
+    const entries = monthEntries(y,m);
+    let mTotal=0;
+    entries.forEach(e=>{
+      const v = Number(e.valor)||0;
+      mTotal += v; yearTotal += v;
+      if(e.pago) yearPaid += v; else yearPending += v;
+      const who = e.quem || 'Não informado';
+      perPerson[who] = (perPerson[who]||0) + v;
+    });
+    monthTotals.push(mTotal);
+  }
+  const maxMonth = Math.max(1, ...monthTotals);
+
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Financeiro</div>
+        <h1>Pagamentos</h1>
+        <p>Clique em um mês para cadastrar custos, marcar como pago e ver quem pagou.</p>
+      </div>
+      <div class="year-switch">
+        <button id="y-prev">‹</button>
+        <span>${y}</span>
+        <button id="y-next">›</button>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card"><div class="label">Total no ano</div><div class="value">${fmtMoney(yearTotal)}</div></div>
+      <div class="dash-card paid"><div class="label">Pago</div><div class="value">${fmtMoney(yearPaid)}</div></div>
+      <div class="dash-card pending"><div class="label">Pendente</div><div class="value">${fmtMoney(yearPending)}</div></div>
+      <div class="dash-card"><div class="label">Meses com lançamento</div><div class="value">${monthTotals.filter(t=>t>0).length}/12</div></div>
+    </div>
+
+    <div class="bars">
+      ${monthTotals.map((t,i)=>`
+        <div class="bar-col">
+          <div class="bar" style="height:${Math.max(2,(t/maxMonth)*90)}px"></div>
+          <div class="lbl">${MONTHS_SHORT[i]}</div>
+        </div>`).join('')}
+    </div>
+
+    ${Object.keys(perPerson).length ? `<div class="people-row">
+      ${Object.entries(perPerson).map(([who,v])=>`<div class="person-pill">${who} <span class="amt">${fmtMoney(v)}</span></div>`).join('')}
+    </div>` : ''}
+
+    <div class="drawer-grid">
+      ${MONTHS.map((name,i)=>{
+        const entries = monthEntries(y,i);
+        const st = monthStatus(entries);
+        const total = entries.reduce((s,e)=>s+(Number(e.valor)||0),0);
+        const tagText = st==='empty' ? 'Sem lançamentos' : st==='paid' ? 'Tudo pago' : 'Pendente';
+        return `<div class="drawer status-${st}" data-m="${i}">
+          <div>
+            <div class="m-name">${name}</div>
+            <div class="m-total">${fmtMoney(total)}</div>
+            <div class="m-sub">${entries.length} lançamento${entries.length===1?'':'s'}</div>
+          </div>
+          <div class="m-tag">${tagText}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  document.getElementById('y-prev').onclick = ()=>{ state.currentYear--; renderPagamentos(main); };
+  document.getElementById('y-next').onclick = ()=>{ state.currentYear++; renderPagamentos(main); };
+  main.querySelectorAll('.drawer').forEach(d=>{
+    d.addEventListener('click', ()=> openMonthModal(y, Number(d.dataset.m)));
+  });
+}
+
+function openMonthModal(y,m){
+  openModal(monthModalHTML(y,m));
+  wireMonthModal(y,m);
+}
+function monthModalHTML(y,m){
+  const entries = monthEntries(y,m);
+  const total = entries.reduce((s,e)=>s+(Number(e.valor)||0),0);
+  const paid = entries.filter(e=>e.pago).reduce((s,e)=>s+(Number(e.valor)||0),0);
+  const pending = total - paid;
+  return `
+    <div class="modal-head">
+      <h2>${MONTHS[m]} · ${y}</h2>
+      <button class="modal-close" id="m-close">✕</button>
+    </div>
+    <div id="entries-list">
+      ${entries.length ? entries.map(e=>`
+        <div class="entry-row" data-id="${e.id}">
+          <div class="desc">${e.desc}<span class="who">${e.quem||'—'}</span></div>
+          <div class="valor">${fmtMoney(e.valor)}</div>
+          <button class="status-chip ${e.pago?'paid':'pending'}" data-toggle="${e.id}">${e.pago?'Pago':'Pendente'}</button>
+          <button class="btn danger sm icon" data-del="${e.id}">✕</button>
+        </div>
+      `).join('') : `<div class="empty-state">Nenhum custo cadastrado ainda para este mês. Adicione o primeiro abaixo.</div>`}
+    </div>
+    <div class="add-form">
+      <div class="full"><label class="field-label">Descrição</label><input id="f-desc" placeholder="Ex: Aluguel, materiais, anúncio..." /></div>
+      <div><label class="field-label">Valor (R$)</label><input id="f-valor" type="number" step="0.01" placeholder="0,00" /></div>
+      <div><label class="field-label">Quem pagou</label><input id="f-quem" placeholder="Ex: Vic" /></div>
+      <div><label class="field-label">Status</label>
+        <select id="f-pago"><option value="0">Pendente</option><option value="1">Pago</option></select>
+      </div>
+      <div class="full" style="display:flex; justify-content:flex-end;"><button class="btn" id="f-add">Adicionar</button></div>
+    </div>
+    <div class="month-totals">
+      <span>Total: <b>${fmtMoney(total)}</b></span>
+      <span>Pago: <b>${fmtMoney(paid)}</b></span>
+      <span>Pendente: <b>${fmtMoney(pending)}</b></span>
+    </div>
+  `;
+}
+function wireMonthModal(y,m){
+  document.getElementById('m-close').onclick = ()=>{ closeModal(); renderPagamentos(document.getElementById('main')); };
+  modalBody.querySelectorAll('[data-toggle]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.toggle;
+      const arr = state.payments[monthKey(y,m)];
+      const entry = arr.find(e=>e.id===id);
+      entry.pago = !entry.pago;
+      saveState();
+      openModal(monthModalHTML(y,m)); wireMonthModal(y,m);
+    };
+  });
+  modalBody.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.del;
+      state.payments[monthKey(y,m)] = (state.payments[monthKey(y,m)]||[]).filter(e=>e.id!==id);
+      saveState();
+      openModal(monthModalHTML(y,m)); wireMonthModal(y,m);
+    };
+  });
+  document.getElementById('f-add').onclick = ()=>{
+    const desc = document.getElementById('f-desc').value.trim();
+    const valor = document.getElementById('f-valor').value;
+    const quem = document.getElementById('f-quem').value.trim();
+    const pago = document.getElementById('f-pago').value === '1';
+    if(!desc || !valor) return;
+    const key = monthKey(y,m);
+    if(!state.payments[key]) state.payments[key] = [];
+    state.payments[key].push({id: uid(), desc, valor: Number(valor), quem, pago});
+    saveState();
+    openModal(monthModalHTML(y,m)); wireMonthModal(y,m);
+  };
+}
+
+/* ============ MARKETING ============ */
+function renderMarketing(main){
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Marketing</div>
+        <h1>Calendário &amp; Ações</h1>
+        <p>Organize o que vai ser publicado e as campanhas em andamento.</p>
+      </div>
+    </div>
+    <div class="subtabs">
+      <div class="subtab ${activeMktTab==='calendario'?'active':''}" data-tab="calendario">Calendário Editorial</div>
+      <div class="subtab ${activeMktTab==='acoes'?'active':''}" data-tab="acoes">Ações</div>
+    </div>
+    <div id="mkt-content"></div>
+  `;
+  main.querySelectorAll('.subtab').forEach(t=>{
+    t.onclick = ()=>{ activeMktTab = t.dataset.tab; renderMarketing(main); };
+  });
+  if(activeMktTab==='calendario') renderCalendario(document.getElementById('mkt-content'));
+  else renderAcoes(document.getElementById('mkt-content'));
+}
+
+function renderCalendario(el){
+  const items = [...state.calendar].sort((a,b)=> (a.data||'').localeCompare(b.data||''));
+  el.innerHTML = `
+    <div class="inline-form">
+      <div><label class="field-label">Data</label><input type="date" id="c-data"/></div>
+      <div><label class="field-label">Canal</label>
+        <select id="c-canal"><option>Instagram</option><option>WhatsApp</option><option>Site</option><option>Email</option><option>Outro</option></select>
+      </div>
+      <div><label class="field-label">Tipo</label>
+        <select id="c-tipo"><option>Post</option><option>Story</option><option>Reels</option><option>Artigo</option><option>Anúncio</option></select>
+      </div>
+      <div><label class="field-label">Status</label>
+        <select id="c-status"><option>Planejado</option><option>Em produção</option><option>Agendado</option><option>Publicado</option></select>
+      </div>
+      <div class="full"><label class="field-label">Título / tema</label><input id="c-titulo" placeholder="Ex: Antes e depois — tratamento X"/></div>
+      <div class="inline-form-actions"><button class="btn" id="c-add">Adicionar ao calendário</button></div>
+    </div>
+    <div class="card-list" id="cal-list">
+      ${items.length ? items.map(it=>`
+        <div class="item-card" data-id="${it.id}">
+          <div class="main">
+            <div class="title">${it.titulo||'(sem título)'}</div>
+            <div class="meta">
+              <span>${it.data ? new Date(it.data+'T00:00').toLocaleDateString('pt-BR') : 'sem data'}</span>
+              <span>${it.canal}</span><span>${it.tipo}</span>
+            </div>
+          </div>
+          <span class="badge ${it.status==='Publicado'?'b-done':it.status==='Planejado'?'b-plan':'b-prog'}">${it.status}</span>
+          <div class="row-actions"><button class="btn danger sm" data-del="${it.id}">Excluir</button></div>
+        </div>
+      `).join('') : `<div class="empty-state">Nenhum conteúdo planejado ainda. Cadastre a primeira publicação acima.</div>`}
+    </div>
+  `;
+  document.getElementById('c-add').onclick = ()=>{
+    const data = document.getElementById('c-data').value;
+    const canal = document.getElementById('c-canal').value;
+    const tipo = document.getElementById('c-tipo').value;
+    const status = document.getElementById('c-status').value;
+    const titulo = document.getElementById('c-titulo').value.trim();
+    if(!titulo) return;
+    state.calendar.push({id: uid(), data, canal, tipo, status, titulo});
+    saveState(); renderCalendario(el);
+  };
+  el.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = ()=>{ state.calendar = state.calendar.filter(x=>x.id!==b.dataset.del); saveState(); renderCalendario(el); };
+  });
+}
+
+function renderAcoes(el){
+  const items = state.acoes;
+  el.innerHTML = `
+    <div class="inline-form">
+      <div class="full"><label class="field-label">Título da ação</label><input id="a-titulo" placeholder="Ex: Campanha de inauguração"/></div>
+      <div class="full"><label class="field-label">Objetivo</label><input id="a-objetivo" placeholder="Ex: Gerar 50 leads na região"/></div>
+      <div><label class="field-label">Prazo</label><input type="date" id="a-prazo"/></div>
+      <div><label class="field-label">Responsável</label><input id="a-resp" placeholder="Ex: Sócia"/></div>
+      <div><label class="field-label">Status</label>
+        <select id="a-status"><option>A iniciar</option><option>Em andamento</option><option>Concluído</option></select>
+      </div>
+      <div class="inline-form-actions"><button class="btn" id="a-add">Adicionar ação</button></div>
+    </div>
+    <div class="card-list">
+      ${items.length ? items.map(it=>`
+        <div class="item-card" data-id="${it.id}">
+          <div class="main">
+            <div class="title">${it.titulo}</div>
+            <div class="meta">
+              <span>${it.objetivo||''}</span>
+              ${it.prazo?`<span>prazo ${new Date(it.prazo+'T00:00').toLocaleDateString('pt-BR')}</span>`:''}
+              ${it.responsavel?`<span>${it.responsavel}</span>`:''}
+            </div>
+          </div>
+          <span class="badge ${it.status==='Concluído'?'b-done':it.status==='A iniciar'?'b-plan':'b-prog'}">${it.status}</span>
+          <div class="row-actions"><button class="btn danger sm" data-del="${it.id}">Excluir</button></div>
+        </div>
+      `).join('') : `<div class="empty-state">Nenhuma ação cadastrada. Que tal começar com a campanha de inauguração?</div>`}
+    </div>
+  `;
+  document.getElementById('a-add').onclick = ()=>{
+    const titulo = document.getElementById('a-titulo').value.trim();
+    if(!titulo) return;
+    state.acoes.push({
+      id: uid(), titulo,
+      objetivo: document.getElementById('a-objetivo').value.trim(),
+      prazo: document.getElementById('a-prazo').value,
+      responsavel: document.getElementById('a-resp').value.trim(),
+      status: document.getElementById('a-status').value
+    });
+    saveState(); renderAcoes(el);
+  };
+  el.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = ()=>{ state.acoes = state.acoes.filter(x=>x.id!==b.dataset.del); saveState(); renderAcoes(el); };
+  });
+}
+
+/* ============ MARCA ============ */
+function renderMarca(main){
+  const mk = state.marca;
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Identidade</div>
+        <h1>Manual de Marca</h1>
+        <p>Cores, sensações, voz e tipografia que definem a experiência da clínica.</p>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:22px;">
+      <h3>Paleta de cores</h3>
+      <div class="swatch-grid" id="swatch-grid">
+        ${mk.colors.map(c=>`
+          <div class="swatch">
+            <div class="fill" style="background:${c.hex}"><button class="rm" data-rm-color="${c.id}">✕</button></div>
+            <div class="info">${c.nome}<div class="hex">${c.hex}</div></div>
+          </div>
+        `).join('') || `<div class="empty-state" style="grid-column:1/-1;">Nenhuma cor cadastrada ainda.</div>`}
+      </div>
+      <div class="inline-form" style="margin-bottom:0;">
+        <div><label class="field-label">Nome da cor</label><input id="mc-nome" placeholder="Ex: Verde clínico"/></div>
+        <div><label class="field-label">Código hex</label><input id="mc-hex" placeholder="#3F6B5E"/></div>
+        <div class="inline-form-actions"><button class="btn" id="mc-add">Adicionar cor</button></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:22px;">
+      <h3>Sensações que queremos transmitir</h3>
+      <div class="chip-input-wrap" id="sens-wrap">
+        ${mk.sensations.map(s=>`<div class="chip">${s}<button data-rm-sens="${s}">✕</button></div>`).join('') || ''}
+      </div>
+      <div style="display:flex; gap:8px;">
+        <input id="sens-input" placeholder="Ex: acolhimento — pressione Enter" style="flex:1;"/>
+        <button class="btn" id="sens-add">Adicionar</button>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <h3>Voz e tom</h3>
+        <textarea id="voice-note" style="width:100%; min-height:110px;" placeholder="Como a marca fala: acolhedora, técnica, próxima, divertida...">${mk.voice||''}</textarea>
+      </div>
+      <div class="panel">
+        <h3>Tipografia</h3>
+        <label class="field-label">Fonte de destaque</label>
+        <input id="font-display" value="${mk.fontDisplay||''}" placeholder="Ex: Montserrat" style="width:100%; margin-bottom:10px;"/>
+        <label class="field-label">Fonte de texto</label>
+        <input id="font-body" value="${mk.fontBody||''}" placeholder="Ex: Inter" style="width:100%;"/>
+        <div class="font-preview">
+          <div style="font-family:'${mk.fontDisplay||'Montserrat'}',serif; font-size:20px; font-weight:600;">Cuidado que se vê</div>
+          <div style="font-family:'${mk.fontBody||'Montserrat'}',sans-serif; font-size:13px; margin-top:6px; color:var(--text-soft);">Texto de apoio de exemplo para a identidade da marca.</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('mc-add').onclick = ()=>{
+    const nome = document.getElementById('mc-nome').value.trim();
+    const hex = document.getElementById('mc-hex').value.trim();
+    if(!nome || !hex) return;
+    mk.colors.push({id: uid(), nome, hex});
+    saveState(); renderMarca(main);
+  };
+  main.querySelectorAll('[data-rm-color]').forEach(b=>{
+    b.onclick = ()=>{ mk.colors = mk.colors.filter(c=>c.id!==b.dataset.rmColor); saveState(); renderMarca(main); };
+  });
+  function addSensation(){
+    const input = document.getElementById('sens-input');
+    const v = input.value.trim();
+    if(!v) return;
+    if(!mk.sensations.includes(v)) mk.sensations.push(v);
+    saveState(); renderMarca(main);
+  }
+  document.getElementById('sens-add').onclick = addSensation;
+  document.getElementById('sens-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addSensation(); });
+  main.querySelectorAll('[data-rm-sens]').forEach(b=>{
+    b.onclick = ()=>{ mk.sensations = mk.sensations.filter(s=>s!==b.dataset.rmSens); saveState(); renderMarca(main); };
+  });
+  document.getElementById('voice-note').addEventListener('change', e=>{ mk.voice = e.target.value; saveState(); });
+  document.getElementById('font-display').addEventListener('change', e=>{ mk.fontDisplay = e.target.value; saveState(); renderMarca(main); });
+  document.getElementById('font-body').addEventListener('change', e=>{ mk.fontBody = e.target.value; saveState(); renderMarca(main); });
+}
+
+/* ============ ETAPAS DA OBRA ============ */
+const STATUS_LABEL = {nao_iniciado:'Não iniciado', andamento:'Em andamento', concluido:'Concluído'};
+function renderObra(main){
+  const etapas = state.etapas;
+  const avg = Math.round(etapas.reduce((s,e)=>s+Number(e.progresso||0),0)/etapas.length);
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Construção</div>
+        <h1>Etapas da Obra</h1>
+        <p>Acompanhe o andamento físico da clínica, fase por fase.</p>
+      </div>
+      <button class="btn ghost" id="add-etapa">+ Nova etapa</button>
+    </div>
+    <div class="overall-bar">
+      <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-soft); margin-bottom:8px;">
+        <span>Progresso geral da obra</span><b class="mono" style="color:var(--text)">${avg}%</b>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${avg}%"></div></div>
+    </div>
+    <div class="timeline" id="timeline">
+      ${etapas.map(e=>`
+        <div class="tl-item ${e.status==='concluido'?'done':e.status==='andamento'?'progress':''}" data-id="${e.id}">
+          <div class="tl-dot-col"><div class="tl-dot"></div><div class="tl-line"></div></div>
+          <div class="tl-body">
+            <div class="top-row">
+              <input class="etapa-name" data-name="${e.id}" value="${e.nome}"/>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <select data-status="${e.id}">
+                  <option value="nao_iniciado" ${e.status==='nao_iniciado'?'selected':''}>Não iniciado</option>
+                  <option value="andamento" ${e.status==='andamento'?'selected':''}>Em andamento</option>
+                  <option value="concluido" ${e.status==='concluido'?'selected':''}>Concluído</option>
+                </select>
+                <button class="btn danger sm icon" data-del-etapa="${e.id}">✕</button>
+              </div>
+            </div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${e.progresso}%"></div></div>
+            <input type="range" min="0" max="100" value="${e.progresso}" data-progress="${e.id}" style="width:100%; padding:0; border:none;"/>
+            <textarea placeholder="Notas sobre esta etapa..." data-notas="${e.id}">${e.notas||''}</textarea>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  document.getElementById('add-etapa').onclick = ()=>{
+    etapas.push({id: uid(), nome:'Nova etapa', status:'nao_iniciado', progresso:0, notas:''});
+    saveState(); renderObra(main);
+  };
+  main.querySelectorAll('[data-del-etapa]').forEach(b=>{
+    b.onclick = ()=>{ state.etapas = etapas.filter(e=>e.id!==b.dataset.delEtapa); saveState(); renderObra(main); };
+  });
+  main.querySelectorAll('[data-name]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ etapas.find(e=>e.id===inp.dataset.name).nome = inp.value; saveState(); });
+  });
+  main.querySelectorAll('[data-status]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{ etapas.find(e=>e.id===sel.dataset.status).status = sel.value; saveState(); renderObra(main); });
+  });
+  main.querySelectorAll('[data-progress]').forEach(rng=>{
+    rng.addEventListener('input', ()=>{
+      etapas.find(e=>e.id===rng.dataset.progress).progresso = Number(rng.value);
+      rng.parentElement.querySelector('.progress-bar-fill').style.width = rng.value+'%';
+    });
+    rng.addEventListener('change', ()=>{ saveState(); renderObra(main); });
+  });
+  main.querySelectorAll('[data-notas]').forEach(ta=>{
+    ta.addEventListener('change', ()=>{ etapas.find(e=>e.id===ta.dataset.notas).notas = ta.value; saveState(); });
+  });
+}
+
+/* ============ TAREFAS (kanban) ============ */
+const KCOLS = ['A Fazer','Fazendo','Feito'];
+function renderTarefas(main){
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Execução</div>
+        <h1>Tarefas</h1>
+        <p>Um Trello simples só nosso — cadastre, mova e finalize.</p>
+      </div>
+    </div>
+    <div class="kanban">
+      ${KCOLS.map((name,ci)=>`
+        <div class="kcol">
+          <h3>${name} <span>${state.tasks.filter(t=>t.col===ci).length}</span></h3>
+          ${ci===0?`<div class="kadd"><input id="k-new" placeholder="Nova tarefa..."/><button class="btn sm" id="k-add">+</button></div>`:''}
+          ${state.tasks.filter(t=>t.col===ci).map(t=>`
+            <div class="kcard" data-id="${t.id}">
+              <div class="ktitle">${t.titulo}</div>
+              ${t.prazo?`<div class="kdate">prazo ${new Date(t.prazo+'T00:00').toLocaleDateString('pt-BR')}</div>`:''}
+              <div class="kactions">
+                <div class="move">
+                  ${ci>0?`<button data-move="${t.id}:${ci-1}">←</button>`:''}
+                  ${ci<2?`<button data-move="${t.id}:${ci+1}">→</button>`:''}
+                </div>
+                <button data-del-task="${t.id}">✕</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    </div>
+  `;
+  document.getElementById('k-add').onclick = ()=>{
+    const inp = document.getElementById('k-new');
+    const v = inp.value.trim();
+    if(!v) return;
+    state.tasks.push({id: uid(), titulo: v, prazo:'', col:0});
+    saveState(); renderTarefas(main);
+  };
+  document.getElementById('k-new').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('k-add').click(); });
+  main.querySelectorAll('[data-move]').forEach(b=>{
+    b.onclick = ()=>{
+      const [id,col] = b.dataset.move.split(':');
+      state.tasks.find(t=>t.id===id).col = Number(col);
+      saveState(); renderTarefas(main);
+    };
+  });
+  main.querySelectorAll('[data-del-task]').forEach(b=>{
+    b.onclick = ()=>{ state.tasks = state.tasks.filter(t=>t.id!==b.dataset.delTask); saveState(); renderTarefas(main); };
+  });
+}
+
+/* ============ CONTABILIDADE ============ */
+function renderContabilidade(main){
+  const items = [...state.contabilidade].sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+  const receita = state.contabilidade.filter(i=>i.tipo==='Receita').reduce((s,i)=>s+(Number(i.valor)||0),0);
+  const despesa = state.contabilidade.filter(i=>i.tipo==='Despesa').reduce((s,i)=>s+(Number(i.valor)||0),0);
+  const resultado = receita - despesa;
+  const pendNota = state.contabilidade.filter(i=>!i.nota).length;
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Financeiro</div>
+        <h1>Contabilidade</h1>
+        <p>Receitas, despesas e situação fiscal separados do fluxo operacional de pagamentos.</p>
+      </div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card paid"><div class="label">Receita total</div><div class="value">${fmtMoney(receita)}</div></div>
+      <div class="dash-card pending"><div class="label">Despesa total</div><div class="value">${fmtMoney(despesa)}</div></div>
+      <div class="dash-card"><div class="label">Resultado</div><div class="value" style="color:${resultado>=0?'var(--sage)':'var(--rust)'}">${fmtMoney(resultado)}</div></div>
+      <div class="dash-card"><div class="label">Notas fiscais pendentes</div><div class="value">${pendNota}</div></div>
+    </div>
+    <div class="inline-form">
+      <div><label class="field-label">Data</label><input type="date" id="ct-data"/></div>
+      <div><label class="field-label">Tipo</label>
+        <select id="ct-tipo"><option>Receita</option><option>Despesa</option></select>
+      </div>
+      <div><label class="field-label">Categoria</label><input id="ct-cat" placeholder="Ex: Consulta, Fornecedor, Imposto"/></div>
+      <div><label class="field-label">Valor (R$)</label><input type="number" step="0.01" id="ct-valor" placeholder="0,00"/></div>
+      <div><label class="field-label">Nota fiscal</label>
+        <select id="ct-nota"><option value="1">Emitida</option><option value="0">Pendente</option></select>
+      </div>
+      <div class="full"><label class="field-label">Notas</label><input id="ct-notas" placeholder="Observações opcionais"/></div>
+      <div class="inline-form-actions"><button class="btn" id="ct-add">Adicionar lançamento</button></div>
+    </div>
+    <div class="card-list">
+      ${items.length ? items.map(it=>`
+        <div class="item-card" data-id="${it.id}">
+          <div class="main">
+            <div class="title">${it.categoria||'(sem categoria)'} <span class="mono" style="font-size:13px; color:${it.tipo==='Receita'?'var(--sage)':'var(--rust)'}">${it.tipo==='Receita'?'+':'-'}${fmtMoney(it.valor)}</span></div>
+            <div class="meta">
+              <span>${it.data ? new Date(it.data+'T00:00').toLocaleDateString('pt-BR') : 'sem data'}</span>
+              <span>${it.tipo}</span>
+              ${it.notas?`<span>${it.notas}</span>`:''}
+            </div>
+          </div>
+          <span class="badge ${it.nota?'b-done':'b-prog'}">${it.nota?'Nota emitida':'Nota pendente'}</span>
+          <div class="row-actions"><button class="btn danger sm" data-del="${it.id}">Excluir</button></div>
+        </div>
+      `).join('') : `<div class="empty-state">Nenhum lançamento contábil ainda. Cadastre a primeira receita ou despesa acima.</div>`}
+    </div>
+  `;
+  document.getElementById('ct-add').onclick = ()=>{
+    const categoria = document.getElementById('ct-cat').value.trim();
+    const valor = document.getElementById('ct-valor').value;
+    if(!categoria || !valor) return;
+    state.contabilidade.push({
+      id: uid(),
+      data: document.getElementById('ct-data').value,
+      tipo: document.getElementById('ct-tipo').value,
+      categoria,
+      valor: Number(valor),
+      nota: document.getElementById('ct-nota').value === '1',
+      notas: document.getElementById('ct-notas').value.trim()
+    });
+    saveState(); renderContabilidade(main);
+  };
+  main.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = ()=>{ state.contabilidade = state.contabilidade.filter(x=>x.id!==b.dataset.del); saveState(); renderContabilidade(main); };
+  });
+}
+
+/* ============ IDEIAS ============ */
+function renderIdeias(main){
+  const items = state.ideias;
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Brainstorm</div>
+        <h1>Ideias</h1>
+        <p>Um lugar para guardar tudo o que surgir, sem perder nada pelo caminho.</p>
+      </div>
+    </div>
+    <div class="inline-form">
+      <div class="full"><label class="field-label">Título</label><input id="id-titulo" placeholder="Ex: Parceria com academia do bairro"/></div>
+      <div class="full"><label class="field-label">Descrição</label><textarea id="id-desc" style="width:100%; min-height:60px;" placeholder="Detalhe a ideia..."></textarea></div>
+      <div><label class="field-label">Status</label>
+        <select id="id-status"><option>Ideia</option><option>Em avaliação</option><option>Aprovada</option></select>
+      </div>
+      <div class="inline-form-actions"><button class="btn" id="id-add">Adicionar ideia</button></div>
+    </div>
+    <div class="idea-grid">
+      ${items.length ? items.map(it=>`
+        <div class="idea-card" data-id="${it.id}">
+          <div class="title">${it.titulo}</div>
+          <div class="desc">${it.descricao||''}</div>
+          <div class="bottom">
+            <span class="badge ${it.status==='Aprovada'?'b-done':it.status==='Em avaliação'?'b-prog':'b-plan'}">${it.status}</span>
+            <button class="btn danger sm" data-del="${it.id}">Excluir</button>
+          </div>
+        </div>
+      `).join('') : `<div class="empty-state" style="grid-column:1/-1;">Nenhuma ideia registrada ainda. Anote a primeira acima.</div>`}
+    </div>
+  `;
+  document.getElementById('id-add').onclick = ()=>{
+    const titulo = document.getElementById('id-titulo').value.trim();
+    if(!titulo) return;
+    state.ideias.push({
+      id: uid(), titulo,
+      descricao: document.getElementById('id-desc').value.trim(),
+      status: document.getElementById('id-status').value
+    });
+    saveState(); renderIdeias(main);
+  };
+  main.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = ()=>{ state.ideias = state.ideias.filter(x=>x.id!==b.dataset.del); saveState(); renderIdeias(main); };
+  });
+}
+
+/* ============ ARQUIVOS E LINKS ============ */
+function renderArquivos(main){
+  const items = state.arquivos;
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Referência</div>
+        <h1>Arquivos e Links Importantes</h1>
+        <p>Contratos, fornecedores, pastas e referências — tudo num só lugar.</p>
+      </div>
+    </div>
+    <div class="inline-form">
+      <div><label class="field-label">Título</label><input id="lk-titulo" placeholder="Ex: Contrato de locação"/></div>
+      <div><label class="field-label">Link (URL)</label><input id="lk-url" placeholder="https://..."/></div>
+      <div><label class="field-label">Categoria</label>
+        <select id="lk-cat"><option>Contrato</option><option>Fornecedor</option><option>Referência</option><option>Financeiro</option><option>Outro</option></select>
+      </div>
+      <div class="full"><label class="field-label">Notas</label><input id="lk-notas" placeholder="Observações opcionais"/></div>
+      <div class="inline-form-actions"><button class="btn" id="lk-add">Adicionar</button></div>
+    </div>
+    <div class="card-list">
+      ${items.length ? items.map(it=>`
+        <div class="item-card" data-id="${it.id}">
+          <div class="main">
+            <div class="title link-title">${it.url ? `<a href="${it.url}" target="_blank" rel="noopener">${it.titulo}</a>` : it.titulo}</div>
+            <div class="meta">
+              <span>${it.categoria}</span>
+              ${it.notas?`<span>${it.notas}</span>`:''}
+            </div>
+          </div>
+          <div class="row-actions"><button class="btn danger sm" data-del="${it.id}">Excluir</button></div>
+        </div>
+      `).join('') : `<div class="empty-state">Nenhum arquivo ou link cadastrado ainda.</div>`}
+    </div>
+  `;
+  document.getElementById('lk-add').onclick = ()=>{
+    const titulo = document.getElementById('lk-titulo').value.trim();
+    if(!titulo) return;
+    state.arquivos.push({
+      id: uid(), titulo,
+      url: document.getElementById('lk-url').value.trim(),
+      categoria: document.getElementById('lk-cat').value,
+      notas: document.getElementById('lk-notas').value.trim()
+    });
+    saveState(); renderArquivos(main);
+  };
+  main.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = ()=>{ state.arquivos = state.arquivos.filter(x=>x.id!==b.dataset.del); saveState(); renderArquivos(main); };
+  });
+}
+
+/* ============ PREVISÕES & ACONTECIMENTOS ============ */
+function renderEventos(main){
+  const today = new Date().toISOString().slice(0,10);
+  const items = [...state.eventos].sort((a,b)=> (a.data||'').localeCompare(b.data||''));
+  const proximos = state.eventos.filter(e=>e.data>=today && e.status!=='Concluído').length;
+  const badgeClass = s => s==='Concluído' ? 'b-done' : s==='Confirmado' ? 'b-prog' : s==='Adiado' ? 'b-adiado' : 'b-plan';
+  main.innerHTML = `
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Linha do tempo</div>
+        <h1>Previsões &amp; Acontecimentos</h1>
+        <p>Datas importantes, marcos e lançamentos previstos para a clínica.</p>
+      </div>
+    </div>
+    <div class="dash-grid" style="grid-template-columns:repeat(2,1fr); margin-bottom:24px;">
+      <div class="dash-card"><div class="label">Total registrado</div><div class="value">${state.eventos.length}</div></div>
+      <div class="dash-card pending"><div class="label">Próximos (não concluídos)</div><div class="value">${proximos}</div></div>
+    </div>
+    <div class="inline-form">
+      <div><label class="field-label">Data prevista</label><input type="date" id="ev-data"/></div>
+      <div class="full"><label class="field-label">Título</label><input id="ev-titulo" placeholder="Ex: Lançamento das inscrições, Inauguração..."/></div>
+      <div><label class="field-label">Tipo</label>
+        <select id="ev-tipo"><option>Lançamento</option><option>Marco</option><option>Evento</option><option>Inauguração</option><option>Outro</option></select>
+      </div>
+      <div><label class="field-label">Status</label>
+        <select id="ev-status"><option>Previsto</option><option>Confirmado</option><option>Concluído</option><option>Adiado</option></select>
+      </div>
+      <div class="full"><label class="field-label">Notas</label><input id="ev-notas" placeholder="Observações opcionais"/></div>
+      <div class="inline-form-actions"><button class="btn" id="ev-add">Adicionar</button></div>
+    </div>
+    <div class="timeline" id="ev-list">
+      ${items.length ? items.map(it=>`
+        <div class="tl-item ${it.status==='Concluído'?'done':it.status==='Confirmado'?'progress':''}" data-id="${it.id}">
+          <div class="tl-dot-col"><div class="tl-dot"></div><div class="tl-line"></div></div>
+          <div class="tl-body">
+            <div class="top-row">
+              <div>
+                <div style="font-family:'Montserrat',sans-serif; font-weight:600; font-size:15px;">${it.titulo}</div>
+                <div class="meta" style="font-size:12px; color:var(--text-soft); margin-top:4px;">
+                  ${it.data ? new Date(it.data+'T00:00').toLocaleDateString('pt-BR') : 'sem data'} · ${it.tipo}
+                  ${it.notas ? ' · '+it.notas : ''}
+                </div>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <span class="badge ${badgeClass(it.status)}">${it.status}</span>
+                <button class="btn danger sm icon" data-del="${it.id}">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('') : `<div class="empty-state">Nenhuma previsão cadastrada ainda. Adicione o primeiro marco ou lançamento acima.</div>`}
+    </div>
+  `;
+  document.getElementById('ev-add').onclick = ()=>{
+    const titulo = document.getElementById('ev-titulo').value.trim();
+    if(!titulo) return;
+    state.eventos.push({
+      id: uid(),
+      data: document.getElementById('ev-data').value,
+      titulo,
+      tipo: document.getElementById('ev-tipo').value,
+      status: document.getElementById('ev-status').value,
+      notas: document.getElementById('ev-notas').value.trim()
+    });
+    saveState(); renderEventos(main);
+  };
+  main.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = ()=>{ state.eventos = state.eventos.filter(x=>x.id!==b.dataset.del); saveState(); renderEventos(main); };
+  });
+}
+
+/* ============ INIT ============ */
+(async function init(){
+  await loadState();
+  document.querySelector('.nav-item[data-section="pagamentos"]').classList.add('active');
+  render();
+})();
+</script>
+</body>
+</html>
