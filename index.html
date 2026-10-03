@@ -504,6 +504,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
       <div class="head">
         <div><h1>Recorrências</h1><p class="desc">O que se repete sozinho: aluguel, internet, contabilidade. Cadastre uma vez, com dia, pix e forma de pagamento, e o app mostra cada repetição no calendário.</p></div>
         <div class="spacer"></div>
+        <button class="btn ghost" onclick="openImportarRec()"><svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>Usar pagamento anterior</button>
         <button class="btn" onclick="openRec()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nova recorrência</button>
       </div>
       <div class="kpis" id="kpiRec"></div>
@@ -781,7 +782,13 @@ function ocorrencias(r, de, ate){
 }
 // já existe um gasto lançado para essa repetição?
 function jaLancada(r, data){
-  return DB.gastos.some(g=>g.recorrencia_id===r.id && (g.vencimento===data || (!g.vencimento && g.mes===data.slice(0,7))));
+  const porMes = r.frequencia==='mensal' || r.frequencia==='anual' || !r.frequencia;
+  return DB.gastos.some(g=>{
+    if(g.recorrencia_id!==r.id) return false;
+    if(g.vencimento===data) return true;
+    if(porMes){ const m=(g.vencimento||g.mes||'').slice(0,7); return m===data.slice(0,7); }
+    return !g.vencimento && g.mes===data.slice(0,7);
+  });
 }
 // repetições pendentes de lançamento num intervalo
 function recPendentes(de, ate){
@@ -973,6 +980,7 @@ function chipReembolso(g){
 const ICO_EDIT = `<svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M11 4H4v16h16v-7M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4z"/></svg>`;
 const ICO_DEL = `<svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>`;
 const ICO_X = `<svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+const ICO_REP = `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>`;
 const ICO_COPY = `<svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M9 9h10v10H9zM5 15V5h10"/></svg>`;
 const hdr = t => `<header><h3>${t}</h3><button class="iconbtn" onclick="fechar()" aria-label="Fechar">${ICO_X}</button></header>`;
 
@@ -995,6 +1003,7 @@ function linhaGasto(g){
     <td class="num">${brl(+g.valor)}${(+g.parcelas>1)?`<div class="sub-line">${g.parcelas}x ${brl((+g.valor||0)/(+g.parcelas))}</div>`:''}</td>
     <td style="width:1%;white-space:nowrap">
       ${g.reembolso==='pendente'?`<button class="btn ghost sm" onclick="marcarReembolso('${g.id}')">Reembolsado</button>`:''}
+      ${!g.recorrencia_id?`<button class="iconbtn" onclick="openRec(null,'${g.id}')" aria-label="Tornar recorrente" title="Tornar recorrente">${ICO_REP}</button>`:''}
       <button class="iconbtn" onclick="openGasto('${g.id}')" aria-label="Editar">${ICO_EDIT}</button>
       <button class="iconbtn" onclick="excluir('gastos','${g.id}')" aria-label="Excluir">${ICO_DEL}</button>
     </td></tr>`;
@@ -1261,11 +1270,31 @@ function onFreqChange(){
   document.getElementById('box-r-dsem').classList.toggle('hide', f!=='semanal');
   document.getElementById('dica-r').textContent = f==='quinzenal' ? 'Repete a cada 15 dias a partir da data de início.' : f==='semanal' ? 'Repete toda semana no dia escolhido.' : f==='anual' ? 'Repete uma vez por ano no dia e mês escolhidos.' : 'Repete todo mês no dia escolhido (em meses mais curtos cai no último dia).';
 }
-function openRec(id){
-  const r = id ? DB.recorrencias.find(x=>x.id===id) : null;
+const normDesc = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b/g,'').replace(/\b(de|do|da)\b/g,'').replace(/\d+/g,'').replace(/[^a-z]+/g,' ').trim();
+const baseGasto = g => g.vencimento || g.pago_em || ((g.mes||hojeISO().slice(0,7))+'-10');
+function semelhantes(g){
+  const n = normDesc(g.descricao);
+  return DB.gastos.filter(x=>!x.recorrencia_id && (x.id===g.id || (n && normDesc(x.descricao)===n)))
+    .sort((a,b)=>baseGasto(a).localeCompare(baseGasto(b)));
+}
+let recOrigem = null;
+function recDeGasto(g){
+  const sims = semelhantes(g);
+  const ultimo = sims[sims.length-1] || g, primeiro = sims[0] || g;
+  return {descricao:g.descricao, valor:+ultimo.valor||+g.valor, frequencia:'mensal', dia:+baseGasto(ultimo).slice(8,10)||10,
+    inicio: baseGasto(primeiro), ate:null, forma:ultimo.forma||g.forma, destino:ultimo.destino||g.destino,
+    categoria_id:g.categoria_id, pagador_id:ultimo.pagador_id||g.pagador_id, tipo:g.tipo||'fixo', fornecedor:g.fornecedor};
+}
+function openRec(id, deGastoId){
+  recOrigem = (!id && deGastoId) ? deGastoId : null;
+  const gOrig = recOrigem ? DB.gastos.find(x=>x.id===recOrigem) : null;
+  const r = id ? DB.recorrencias.find(x=>x.id===id) : (gOrig ? recDeGasto(gOrig) : null);
+  const sims = gOrig ? semelhantes(gOrig) : [];
   const freq = r?.frequencia || 'mensal';
-  abrir(`${hdr(r?'Editar recorrência':'Nova recorrência')}
-    <div class="mbody"><div class="fgrid">
+  abrir(`${hdr(id?'Editar recorrência':(gOrig?'Tornar recorrente':'Nova recorrência'))}
+    <div class="mbody">
+    ${gOrig?`<div class="setup" style="margin-bottom:18px"><div><b>Vou vincular ${sims.length} lançamento${sims.length!==1?'s':''} que já existe${sims.length!==1?'m':''}</b> — eles contam como as primeiras repetições, então não duplicam.<div class="sub-line" style="margin-top:6px">${sims.map(x=>`${esc(x.descricao)} · ${dBR(baseGasto(x))} · ${brl(+x.valor)}`).join('<br>')}</div><div class="sub-line" style="margin-top:6px">Confira o dia, até quando e o valor atual. Meses depois do último lançamento e antes de hoje aparecem como vencidos para você lançar.</div></div></div>`:''}
+    <div class="fgrid">
       <div class="f full"><label>Qual pagamento</label><input id="r-desc" value="${esc(r?.descricao)}" placeholder="Aluguel da sala 302"></div>
       <div class="f"><label>Valor</label><input id="r-valor" type="number" step="0.01" value="${r?.valor??''}" placeholder="0,00"></div>
       <div class="f"><label>Repete</label><select id="r-freq" onchange="onFreqChange()">
@@ -1297,7 +1326,8 @@ async function salvarRec(id){
   if(!descricao) return aviso('Diga qual é o pagamento para poder salvar.');
   if(!(valor>0)) return aviso('Informe um valor maior que zero.');
   const antigo = id ? DB.recorrencias.find(x=>x.id===id) : null;
-  await salvar('recorrencias',{id:id||c(), descricao, valor,
+  const novoId = id||c();
+  await salvar('recorrencias',{id:novoId, descricao, valor,
     frequencia: document.getElementById('r-freq').value,
     dia: Number(document.getElementById('r-dia').value)||1,
     mes_ano: Number(document.getElementById('r-mes').value)||1,
@@ -1313,7 +1343,42 @@ async function salvarRec(id){
     obs: document.getElementById('r-obs').value.trim()||null,
     pausada: !!antigo?.pausada,
     criado: antigo?.criado || new Date().toISOString()});
-  fechar(); render(); aviso(id?'Recorrência atualizada.':'Recorrência criada. Ela já aparece no calendário.');
+  let vinc = 0;
+  if(!id && recOrigem){
+    const g0 = DB.gastos.find(x=>x.id===recOrigem);
+    if(g0){ for(const x of semelhantes(g0)){ await salvar('gastos',{...x, recorrencia_id:novoId}); vinc++; } }
+  }
+  recOrigem = null;
+  fechar(); render();
+  aviso(id?'Recorrência atualizada.':(vinc?`Recorrência criada com ${vinc} pagamento${vinc!==1?'s':''} anterior${vinc!==1?'es':''} vinculado${vinc!==1?'s':''}.`:'Recorrência criada. Ela já aparece no calendário.'));
+}
+
+/* escolher um pagamento antigo para virar recorrência */
+function openImportarRec(){
+  const grupos = {};
+  DB.gastos.filter(g=>!g.recorrencia_id).forEach(g=>{
+    const k = normDesc(g.descricao) || g.id;
+    (grupos[k]=grupos[k]||[]).push(g);
+  });
+  const lista = Object.values(grupos).map(gs=>{
+    gs.sort((a,b)=>baseGasto(b).localeCompare(baseGasto(a)));
+    return {ult:gs[0], n:gs.length};
+  }).sort((a,b)=>b.n-a.n || baseGasto(b.ult).localeCompare(baseGasto(a.ult)));
+  abrir(`${hdr('Usar pagamento anterior')}
+    <div class="mbody">
+      <p class="dica" style="margin-bottom:14px">Escolha um pagamento que já foi lançado. O app junta os lançamentos com o mesmo nome (ex: "Aluguel setembro" e "Aluguel outubro") e transforma em uma recorrência.</p>
+      <input type="search" placeholder="Buscar" oninput="filtrarImport(this.value)" style="margin-bottom:12px">
+      <div id="impLista">${lista.length?lista.map(x=>{const g=x.ult,k=cat(g.categoria_id);return `
+        <div class="agitem" data-busca="${esc((g.descricao+' '+(k?k.nome:'')).toLowerCase())}" style="margin-bottom:8px;border-left-color:var(--terra)" onclick="openRec(null,'${g.id}')">
+          <div style="flex:1"><div class="n">${esc(g.descricao)}</div>
+            <div class="s">${x.n>1?`${x.n} lançamentos parecidos · `:''}último em ${dBR(baseGasto(g))}${k?' · '+esc(k.nome):''}${g.forma?' · '+esc(g.forma):''}</div></div>
+          <div class="v">${brl(+g.valor)}</div>
+        </div>`}).join(''):'<div class="empty"><span class="big">Nenhum pagamento disponível</span>Todos os lançamentos já estão ligados a uma recorrência.</div>'}</div>
+    </div>`);
+}
+function filtrarImport(q){
+  q=(q||'').toLowerCase().trim();
+  document.querySelectorAll('#impLista [data-busca]').forEach(el=>{ el.style.display = !q || el.dataset.busca.includes(q) ? '' : 'none'; });
 }
 
 /* ---------- RELATÓRIOS ---------- */
