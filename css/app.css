@@ -548,3 +548,21 @@ input[type=checkbox]{width:auto}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .simgrid{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
 @media(max-width:980px){.simgrid{grid-template-columns:minmax(0,1fr)}}
+
+/* mapa mental interativo */
+.mapa-ajuda{display:flex;gap:6px 16px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--tx-3);margin-bottom:10px}
+.mapa-ajuda b{color:var(--tx-2)}
+.mapa-area{background:var(--input);border-radius:18px;overflow:auto;height:420px;max-height:70vh;display:block;outline:none;resize:vertical}
+.mapa-caixa{margin-left:auto;margin-right:auto;position:relative}
+.mapa-palco{position:absolute;left:0;top:0;transform-origin:0 0}
+.mapa-palco svg g[data-id]:hover rect{filter:brightness(1.06)}
+.mapa-mais{opacity:.75;transition:opacity .15s}
+.mapa-mais:hover{opacity:1}
+.mapa-barra{position:absolute;transform:translateX(-50%);display:flex;gap:4px;padding:5px;border-radius:14px;background:var(--card-2);box-shadow:0 12px 28px -12px rgba(70,40,15,.45);border:1px solid var(--linha);z-index:2;white-space:nowrap}
+.mapa-barra button{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:10px;font-size:12px;font-weight:700;color:var(--tx-2)}
+.mapa-barra button:hover{background:var(--input);color:var(--pri)}
+.mapa-barra svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.mapa-input{position:absolute;z-index:3;border-radius:18px;font-size:13px;font-weight:700;text-align:center;padding:6px 12px;border:2px solid var(--pri);background:#fff;color:#2B2013;box-shadow:0 10px 24px -12px rgba(70,40,15,.5)}
+
+.atas.so-editor{grid-template-columns:minmax(0,1fr)}
+.atas.so-editor > .glass:first-child{display:none}

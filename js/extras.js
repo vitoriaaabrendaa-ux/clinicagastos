@@ -241,7 +241,7 @@ async function excluirEvento(id){
    ATAS DE REUNIÃO
    ========================================================= */
 let ataSel = null, ataTimer = null, ataFila = Promise.resolve(), ataModo = 'texto';
-function abrirAta(id){ if(ataSel && ataSel!==id) ataSincronizar(); ataSel = id; if(aba!=='atas') irPara('atas'); else renderAtas(); }
+function abrirAta(id){ if(ataSel && ataSel!==id){ ataSincronizar(); mapaArv = null; } ataSel = id; if(aba!=='atas') irPara('atas'); else renderAtas(); }
 async function novaAta(iso){
   const a = {id:novoId(), titulo:'Reunião', data:iso||hojeISO(), participantes:null, texto:'', mapa:null, criado:new Date().toISOString(), atualizado:new Date().toISOString()};
   if(!await salvar('atas', a)) return;
@@ -271,39 +271,28 @@ function renderAtas(){
       <div class="f" style="margin-bottom:12px"><label>Participantes</label><input id="ata-part" value="${esc(a.participantes)}" placeholder="Vitória, Sabrina, contador…" oninput="ataMudou()"></div>
       <div class="seg" style="margin-bottom:12px;background:var(--input)">${[['texto','Texto'],['mapa','Mapa mental']].map(([m,t])=>`<button class="${ataModo===m?'on':''}" onclick="setAtaModo('${m}')">${t}</button>`).join('')}</div>
       ${ataModo==='texto' ? `<textarea id="ata-txt" class="texto" placeholder="Pauta, o que foi decidido, próximos passos e responsáveis…" oninput="ataMudou()">${esc(a.texto)}</textarea>`
-      : `<div style="display:flex;flex-direction:column;gap:14px">
-          <div class="f"><label>Tópicos: um por linha, use 2 espaços para criar um galho</label>
-            <textarea id="ata-mapa" class="texto" style="min-height:170px;font-size:13.5px" oninput="ataMudou();desenharMapa()" placeholder="Pauta
-  Fechar buffet
-  Cotar sacolas
-Decisões
-  Orçamento máximo de R$ 15 mil
-Próximos passos
-  Sabrina: fornecedores
-  Vitória: convites">${esc(a.mapa)}</textarea>
-            <button class="btn sm ghost" style="width:fit-content" onclick="gerarMapaDoTexto()">${IC.rep}Gerar a partir do texto da ata</button></div>
-          <div style="background:var(--input);border-radius:16px;padding:16px;overflow:auto;min-height:300px;display:flex;align-items:center" id="mapaSvg"></div>
-        </div>`}
+      : `<input type="hidden" id="ata-mapa" value="${esc(a.mapa||'')}">
+        <div class="mapa-ajuda"><span><b>Clique no +</b> para criar um galho</span><span><b>Clique num balão</b> para criar outro ao lado, renomear ou excluir</span><span><b>Dois cliques</b> para editar o texto</span><span class="spacer"></span>
+          <button class="btn sm ghost" onclick="gerarMapaDoTexto()">${IC.rep}Montar a partir do texto da ata</button></div>
+        <div class="mapa-area" id="mapaSvg" tabindex="0"></div>`}
       <div class="rod"><span id="ata-status">${a.atualizado?'Salvo às '+fmtHora(new Date(a.atualizado)):''}</span><span class="spacer"></span>
         ${ataModo==='mapa'?`<button class="btn sm ghost" onclick="baixarMapa(val('ata-tit'))">${IC2.down}Baixar imagem</button>`:`<button class="btn sm ghost" onclick="baixarAta('${a.id}')">${IC2.down}Baixar .txt</button>`}
         <button class="btn sm ghost" onclick="excluirAta('${a.id}')">${IC.del}Excluir</button></div>
     </div>` : `<div class="ataeditor">${vazio('Nenhuma reunião selecionada','Crie uma nova reunião e escreva a ata aqui mesmo. Ela salva sozinha enquanto você digita.')}</div>`;
-  if(a && ataModo==='mapa') desenharMapa();
-}
-function desenharMapa(){
-  const host = document.getElementById('mapaSvg'); if(!host) return;
-  const txt = document.getElementById('ata-mapa')?.value || '';
-  host.innerHTML = txt.trim() ? svgMapa(parseMapa(txt, val('ata-tit') || 'Reunião')) : '<div class="dica" style="text-align:center">Escreva os tópicos ao lado ou clique em<br><b>Gerar a partir do texto da ata</b>.</div>';
+  document.querySelector('#v-atas .atas')?.classList.toggle('so-editor', !!a && ataModo==='mapa');
+  if(a && ataModo==='mapa'){
+    if(!mapaArv || mapaArv._ata !== a.id){ iniciarMapa(a.mapa, a.titulo); mapaArv._ata = a.id; }
+    desenharMapa();
+  }
 }
 function gerarMapaDoTexto(){
   const a = DB.atas.find(x=>x.id===ataSel); if(!a) return;
-  const el = document.getElementById('ata-mapa');
-  if(el.value.trim() && !confirm('Substituir os tópicos atuais pelos tópicos gerados do texto?')) return;
-  el.value = textoParaTopicos(a.texto);
-  if(!el.value.trim()) aviso('A ata ainda não tem texto. Escreva na aba Texto primeiro.');
-  ataMudou(); desenharMapa();
+  if(!(a.texto||'').trim()) return aviso('A ata ainda não tem texto. Escreva na aba Texto primeiro.');
+  if(mapaArv && mapaArv.f.length && !confirm('Substituir o mapa atual pelo que está no texto da ata?')) return;
+  iniciarMapa(textoParaTopicos(a.texto), val('ata-tit') || a.titulo); mapaArv._ata = a.id;
+  desenharMapa(); mapaMudou();
 }
-function setAtaModo(m){ ataSincronizar(); ataModo = m; renderAtas(); }
+function setAtaModo(m){ if(mapaEdit) mapaConfirmar(); ataSincronizar(); ataModo = m; mapaArv = null; renderAtas(); }
 // copia o que está na tela para os dados (sem esperar o salvamento automático)
 function ataSincronizar(){
   const a = DB.atas.find(x=>x.id===ataSel); if(!a || !document.getElementById('ata-tit')) return null;
@@ -330,7 +319,7 @@ function ataMudou(){
 }
 function baixarAta(id){
   const a = DB.atas.find(x=>x.id===id); if(!a) return;
-  const txt = `${a.titulo}\nData: ${dBR(a.data)}\n${a.participantes?'Participantes: '+a.participantes+'\n':''}\n${a.texto||''}${a.mapa?'\n\n— Mapa mental —\n'+a.mapa:''}`;
+  const txt = `${a.titulo}\nData: ${dBR(a.data)}\n${a.participantes?'Participantes: '+a.participantes+'\n':''}\n${a.texto||''}${a.mapa?'\n\n— Mapa mental —\n'+mapaParaTexto(a.mapa, a.titulo):''}`;
   const el = document.createElement('a'); el.href = URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8'}));
   el.download = `ata-${a.data||'sem-data'}-${norm(a.titulo).replace(/[^a-z0-9]+/g,'-')}.txt`; el.click();
 }
