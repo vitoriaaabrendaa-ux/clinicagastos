@@ -23,7 +23,7 @@ const IC = {
   lua:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>'
 };
 const NADA = '<span class="muted">—</span>';
-const CORES = {pri:'#B5563A', ouro:'#C9922F', verde:'#7A8B45', azul:'#C49A6C', verm:'#9A4A32', areia:'#B9A79A', marrom:'#6E5231'};
+const CORES = {pri:'#B5563A', ouro:'#C9922F', verde:'#7E5235', azul:'#C49A6C', verm:'#9A4A32', areia:'#B9A79A', marrom:'#6E5231'};
 
 function aviso(txt){
   const t=document.getElementById('toast'); t.textContent=txt; t.classList.add('on');
@@ -120,7 +120,7 @@ function statusChip(g){
 }
 function linhaGasto(g){
   const k = cat(g.categoria_id), quando = dataDoGasto(g), parc = parcelaTxt(g);
-  return `<tr>
+  return `<tr style="cursor:pointer" onclick="if(!event.target.closest('button,a'))openGasto('${g.id}')">
     <td><b>${esc(g.descricao)}</b> ${g.recorrencia_id?`<span class="chip ${parc?'parc':'rec'}" title="Recorrente${parc?' · pagamento '+parc:''}">↻ ${parc||'recorrente'}</span>`:''}
       <div class="sub-line">${[g.fornecedor, formaTxt(g)].filter(Boolean).map(esc).join(' · ')}</div>
       ${g.obs?`<div class="sub-line" style="max-width:340px">${esc(g.obs)}</div>`:''}</td>
@@ -132,6 +132,7 @@ function linhaGasto(g){
     <td class="acts">
       ${!g.pago?`<button class="btn xs ok" onclick="openPagar('${g.id}')">Pagar</button>`:''}
       ${compFaltando(g).length?`<button class="btn xs ghost" onclick="openAnexos('${g.id}')">Anexar</button>`:''}
+      <button class="iconbtn" onclick="duplicarGasto('${g.id}')" aria-label="Duplicar" title="Duplicar (copia tudo para o mês seguinte)">${IC.copy}</button>
       <button class="iconbtn" onclick="openGasto('${g.id}')" aria-label="Editar" title="Editar">${IC.edit}</button>
       <button class="iconbtn" onclick="excluir('gastos','${g.id}')" aria-label="Excluir" title="Excluir">${IC.del}</button>
     </td></tr>`;
@@ -200,15 +201,37 @@ function diasDesembolsoHTML(m){
 }
 
 /* ---------- VISÃO GERAL ---------- */
-function renderGeral(){
-  const gs = doMes(), pagos = gs.filter(g=>g.pago), abertos = gs.filter(g=>!g.pago), atr = DB.gastos.filter(atrasado);
+/* filtro de período da visão geral */
+let gPer = 'mes';
+function setGPer(p){
+  gPer = p;
+  if(p==='custom'){ const de=document.getElementById('gDe'), ate=document.getElementById('gAte'); if(!de.value) de.value = addDias(hojeISO(),-30); if(!ate.value) ate.value = hojeISO(); }
+  renderGeral();
+}
+function periodoGeral(){
+  const h = hojeISO();
+  if(gPer==='7') return {de:addDias(h,-6), ate:h, rot:'últimos 7 dias', curto:'7 dias'};
+  if(gPer==='14') return {de:addDias(h,-13), ate:h, rot:'últimos 14 dias', curto:'14 dias'};
+  if(gPer==='tudo'){ const ds = DB.gastos.map(dataRef).filter(Boolean).sort(); return {de:ds[0]||h, ate:ds[ds.length-1]>h?ds[ds.length-1]:h, rot:'todo o período', curto:'total', tudo:true}; }
+  if(gPer==='custom'){ const de = document.getElementById('gDe')?.value || addDias(h,-30), ate = document.getElementById('gAte')?.value || h; return {de, ate: ate<de?de:ate, rot:`${dBR(de)} a ${dBR(ate)}`, curto:'período'}; }
   const [a,m] = mes.split('-').map(Number);
-  const progMes = recPendentes(`${mes}-01`, `${mes}-${pad(ultimoDia(a,m))}`);
+  return {de:`${mes}-01`, ate:`${mes}-${pad(ultimoDia(a,m))}`, rot:mesNome(mes), curto:MESES[m-1], mes:true};
+}
+function renderGeral(){
+  const P = periodoGeral();
+  document.querySelectorAll('#gPerSeg button').forEach(b=>b.classList.toggle('on', b.dataset.p===gPer));
+  document.getElementById('gMonth').style.display = gPer==='mes' ? 'flex' : 'none';
+  document.getElementById('gRange').style.display = gPer==='custom' ? 'flex' : 'none';
+  document.querySelectorAll('.gPerLbl').forEach(el=>el.textContent = P.rot);
+  // no mês usa o "mês de referência"; nos outros filtros, a data do pagamento/vencimento
+  const gs = P.mes ? doMes() : DB.gastos.filter(g=>{ const d=dataRef(g); return d && d>=P.de && d<=P.ate; });
+  const pagos = gs.filter(g=>g.pago), abertos = gs.filter(g=>!g.pago), atr = DB.gastos.filter(atrasado);
+  const progMes = P.tudo ? [] : recPendentes(P.de, P.ate);
   const totProg = progMes.reduce((s,x)=>s+(+x.r.valor||0),0);
   const fixosAtivos = DB.recorrencias.filter(r=>!r.pausada && (r.tipo||'fixo')==='fixo' && (!r.ate || r.ate>=hojeISO()));
   const compromisso = fixosAtivos.reduce((s,r)=>s+valorMensalRec(r),0);
   document.getElementById('kpis').innerHTML =
-    kpi('', IC.cash, 'Total do mês', brl(soma(gs)+totProg), `${plural(gs.length,'lançamento')}${progMes.length?` + ${brl(totProg)} programado`:''}`) +
+    kpi('', IC.cash, P.mes ? 'Total do mês' : `Total · ${P.curto}`, brl(soma(gs)+totProg), `${plural(gs.length,'lançamento')}${progMes.length?` + ${brl(totProg)} programado`:''}`) +
     kpi('ok', IC.check, 'Já pago', brl(soma(pagos)), `${plural(pagos.length,'quitado')}`) +
     kpi('warn', IC.clock, 'Falta pagar', brl(soma(abertos)+totProg), `${abertos.length} em aberto · ${progMes.length} programado${progMes.length!==1?'s':''}`) +
     kpi(atr.length?'bad':'info', atr.length?IC.alert:IC.rep, atr.length?'Vencido':'Custo fixo mensal', atr.length?brl(soma(atr)):brl(compromisso), atr.length?plural(atr.length,'conta atrasada','contas atrasadas'):`${plural(fixosAtivos.length,'contrato ativo','contratos ativos')}`);
@@ -228,7 +251,7 @@ function renderGeral(){
   const meses = [-4,-3,-2,-1,0,1].map(d=>addMes(mes,d));
   document.getElementById('gEvol').innerHTML = graficoEvolucao(meses);
   const cats = itensPorCategoria(gs);
-  document.getElementById('gCat').innerHTML = cats.length ? svgDonut(cats, mesNome(mes).split(' ')[0]) : vazio('Sem gastos neste mês');
+  document.getElementById('gCat').innerHTML = cats.length ? svgDonut(cats, P.curto) : vazio('Sem gastos neste período');
   document.getElementById('proximos').innerHTML = proximosHTML();
   document.getElementById('gDias').innerHTML = diasDesembolsoHTML(mes);
   const ult = DB.gastos.slice().sort((a,b)=>(b.criado||'').localeCompare(a.criado||'')).slice(0,6);
@@ -407,7 +430,7 @@ function cardContrato(r){
   let prog = '';
   if(total){
     const segs = total <= 36 ? `<div class="segs">${Array.from({length:total},(_,i)=>`<i class="${i<info.pagos?'p':(i<info.lancados?'l':'')}"></i>`).join('')}</div>`
-      : `<div class="track"><div class="fill" style="width:${(info.pagos/total*100).toFixed(1)}%;background:var(--grad-verde)"></div></div>`;
+      : `<div class="track"><div class="fill" style="width:${(info.pagos/total*100).toFixed(1)}%;background:var(--grad-salvia)"></div></div>`;
     prog = `<div class="prog"><div class="lin"><span><b>${info.pagos}/${total}</b> pagos</span><span>${info.restantes? `faltam ${plural(info.restantes,'pagamento')} · ${brl(info.valorRestante)}` : 'contrato quitado'}</span></div>${segs}</div>`;
   } else if(r.ate){
     prog = `<div class="prog"><div class="lin"><span class="chip bad">datas inválidas</span><span>termina (${dBR(r.ate)}) antes de começar (${dBR(r.inicio)})</span></div></div>`;
@@ -567,7 +590,7 @@ function renderReembolsos(){
 }
 
 /* ---------- METAS ---------- */
-const CORES_META = ['#B5563A','#C9922F','#7A8B45','#8C5A36','#9A4A32','#C49A6C'];
+const CORES_META = ['#B5563A','#C9922F','#7E5235','#8C5A36','#9A4A32','#C49A6C'];
 function calcMeta(m){
   const meta=+m.meta||0, ticket=+m.ticket||0, vendidos=+m.vendidos||0;
   const necessarios = ticket>0 ? Math.ceil(meta/ticket) : 0, faturado = vendidos*ticket, falta = Math.max(0, meta-faturado);

@@ -1,7 +1,7 @@
 /* =========================================================
    mapa.js — mapa mental a partir de tópicos (um por linha, recuo = nível)
    ========================================================= */
-const MAPA_CORES = ['#B5563A','#C9922F','#7A8B45','#8C5A36','#9A4A32','#D27A4F','#6E5231','#A3B96A'];
+const MAPA_CORES = ['#B5563A','#C9922F','#7E5235','#8C5A36','#9A4A32','#D27A4F','#6E5231','#C49A6C'];
 
 function parseMapa(txt, raiz){
   const root = {t: raiz || 'Reunião', f: []}, pilha = [{n: root, d: -1}];

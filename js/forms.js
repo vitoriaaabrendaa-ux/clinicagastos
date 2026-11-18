@@ -43,18 +43,21 @@ function openGasto(id, tipoPadrao, preset={}){
   const g = id ? DB.gastos.find(x=>x.id===id) : null;
   fGasto = g;
   const recPre = !g && preset.recId ? DB.recorrencias.find(r=>r.id===preset.recId) : null;
+  const cp = !g && preset.copia ? preset.copia : null;   // duplicando um lançamento
   fRec = recDoGasto(g) || recPre;
   // base dos campos: o gasto, ou os dados da recorrência quando é uma repetição programada
-  const b = g || (recPre ? {descricao:recPre.descricao, valor:recPre.valor, categoria_id:recPre.categoria_id, forma:recPre.forma, destino:recPre.destino, fornecedor:recPre.fornecedor, tipo:recPre.tipo||'fixo'} : {});
+  const b = g || cp || (recPre ? {descricao:recPre.descricao, valor:recPre.valor, categoria_id:recPre.categoria_id, forma:recPre.forma, destino:recPre.destino, fornecedor:recPre.fornecedor, tipo:recPre.tipo||'fixo'} : {});
   fTipo = b.tipo || tipoPadrao || 'variavel';
-  fSit = fSitOrig = g ? sitDoGasto(g) : (preset.sit || 'aberto');
-  fDur = g || recPre ? 'so' : 'n';
+  fSit = fSitOrig = g ? sitDoGasto(g) : cp ? sitDoGasto(cp) : (preset.sit || 'aberto');
+  if(cp) fSitOrig = '__copia__';
+  fDur = g || recPre || cp ? 'so' : 'n';
   const venc = g?.vencimento || preset.venc || '';
+  const orig = g || cp;
   const forma = b.forma || 'Pix';
-  const quem = (fSit==='uma' && g?.pagador_id) || socias()[0]?.id;
-  const reemb = g?.reembolso && g.reembolso!=='nao' ? g.reembolso : (g && fSit==='uma' ? 'nao' : 'pendente');
+  const quem = (fSit==='uma' && orig?.pagador_id) || socias()[0]?.id;
+  const reemb = orig?.reembolso && orig.reembolso!=='nao' ? orig.reembolso : (orig && fSit==='uma' ? 'nao' : 'pendente');
   const parc = fRec ? (g ? parcelaTxt(g) : parcelaRecTxt(fRec, venc)) : '';
-  const titulo = g ? 'Editar gasto' : recPre ? `${esc(recPre.descricao)} · ${dBR(venc)}` : (preset.venc ? `Novo pagamento em ${dBR(preset.venc)}` : 'Novo gasto');
+  const titulo = g ? 'Editar gasto' : cp ? 'Duplicar lançamento' : recPre ? `${esc(recPre.descricao)} · ${dBR(venc)}` : (preset.venc ? `Novo pagamento em ${dBR(preset.venc)}` : 'Novo gasto');
   const caixaRec = fRec ? `<div class="caixa" id="box-rec">
       <div class="tit">${IC.rep} Recorrente${parc?` · pagamento ${parc}`:''}</div>
       <div class="f full" style="font-size:12.5px;color:var(--tx-2)">Faz parte de <b>${esc(fRec.descricao)}</b> · ${freqTxt(fRec)}${fRec.ate?` · até ${dBR(fRec.ate)}`:' · sem data para acabar'}.
@@ -67,17 +70,17 @@ function openGasto(id, tipoPadrao, preset={}){
       <div class="f" id="box-ate"><label>Último pagamento em</label><input id="f-ate" type="date" onchange="prevFixo()"></div>
       <div class="preview" id="f-prev"></div>
     </div>`;
-  abrir(`${hdr(titulo, recPre?'repetição programada: confira, anexe o comprovante e salve':'')}
+  abrir(`${hdr(titulo, recPre?'repetição programada: confira, anexe o comprovante e salve': cp ? 'cópia de "'+esc(cp.descricao)+'": mude o que precisar (mês, valor, comprovante…) e salve' : '')}
     <div class="mbody"><div class="fgrid">
       <div class="f full"><label>Descrição</label><input id="f-desc" value="${esc(b.descricao)}" placeholder="Aluguel, assessoria jurídica, material elétrico"></div>
       <div class="f"><label>Valor</label><input id="f-valor" type="number" step="0.01" inputmode="decimal" value="${b.valor??''}" placeholder="0,00" oninput="prevFixo();dicaSit()"></div>
       <div class="f"><label>Vencimento</label><input id="f-venc" type="date" value="${venc}" onchange="onVencChange()"></div>
       <div class="f"><label>Categoria</label><select id="f-cat">${opcoesCat(b.categoria_id)}</select></div>
-      <div class="f"><label>Mês de referência</label><input id="f-mes" type="month" value="${g?.mes || (venc?venc.slice(0,7):mes)}"></div>
+      <div class="f"><label>Mês de referência</label><input id="f-mes" type="month" value="${g?.mes || (venc?venc.slice(0,7):(cp?.mes||mes))}"></div>
       <div class="f"><label>Tipo de custo</label>${seg2('tipo',[['fixo','Fixo'],['variavel','Variável']],fTipo,'setTipo')}</div>
       <div class="f"><label>Forma de pagamento</label><select id="f-forma" onchange="onFormaChange()">${FORMAS.map(f=>`<option ${forma===f?'selected':''}>${f}</option>`).join('')}</select></div>
       ${caixaRec}
-      <div class="f hide" id="box-parcelas"><label>Em quantas vezes no cartão</label><input id="f-parcelas" type="number" min="1" max="48" value="${g?.parcelas||1}"></div>
+      <div class="f hide" id="box-parcelas"><label>Em quantas vezes no cartão</label><input id="f-parcelas" type="number" min="1" max="48" value="${orig?.parcelas||1}"></div>
       <div class="f full"><label id="lbl-destino">Chave pix de destino</label><input id="f-destino" value="${esc(b.destino)}" list="pixlist" placeholder="Chave pix, banco ou nome de quem recebe">${listaPix('pixlist')}</div>
 
       <div class="f full"><label>Situação: as duas sócias já pagaram ou só uma?</label>${seg2('sit',[['aberto','Ainda não foi pago'],['ambas','As duas pagaram'],['uma','Só uma pagou']],fSit,'setSit')}
@@ -89,15 +92,22 @@ function openGasto(id, tipoPadrao, preset={}){
           <option value="feito" ${reemb==='feito'?'selected':''}>Sim, já devolveu</option>
           <option value="nao" ${reemb==='nao'?'selected':''}>Não precisa</option></select></div>
       </div>
-      <div class="f ${fSit!=='aberto'?'':'hide'}" id="box-pagoem"><label>Pago no dia</label><input id="f-pagoem" type="date" value="${g?.pago_em||hojeISO()}"></div>
+      <div class="f ${fSit!=='aberto'?'':'hide'}" id="box-pagoem"><label>Pago no dia</label><input id="f-pagoem" type="date" value="${g?.pago_em||cp?.pago_em||hojeISO()}"></div>
 
-      ${camposAnexos('fa', anexosDe(g), rotulosAnexo({...(g||{}), pago:fSit!=='aberto', quem_pagou:fSit}))}
+      ${camposAnexos('fa', anexosDe(orig), rotulosAnexo({...(orig||{}), pago:fSit!=='aberto', quem_pagou:fSit}))}
 
       <div class="f"><label>Fornecedor</label><input id="f-forn" list="fornlist" value="${esc(b.fornecedor)}" placeholder="opcional">${listaForn('fornlist')}</div>
-      <div class="f full"><label>Observação</label><textarea id="f-obs" placeholder="Qualquer detalhe que vocês queiram lembrar">${esc(g?.obs)}</textarea></div>
+      <div class="f full"><label>Observação</label><textarea id="f-obs" placeholder="Qualquer detalhe que vocês queiram lembrar">${esc(orig?.obs)}</textarea></div>
     </div></div>
-    ${pe(`salvarGasto('${id||''}')`, recPre ? 'Salvar este mês' : 'Salvar gasto')}`);
+    <div class="mfoot">${g?`<button class="btn ghost" style="margin-right:auto" onclick="duplicarGasto('${g.id}')">${IC.copy}Duplicar</button>`:''}<button class="btn ghost" onclick="fechar()">Cancelar</button><button class="btn" onclick="salvarGasto('${id||''}')">${recPre ? 'Salvar este mês' : cp ? 'Salvar cópia' : 'Salvar gasto'}</button></div>`);
   onFormaChange(); if(!fRec) setDur(fDur); dicaSit();
+}
+// duplica um lançamento: abre o formulário com tudo preenchido, já no mês seguinte
+function duplicarGasto(id){
+  const g = DB.gastos.find(x=>x.id===id); if(!g) return;
+  const venc = g.vencimento ? addMeses(g.vencimento, 1) : '';
+  const copia = {...g, id:undefined, recorrencia_id:null, mes: venc ? venc.slice(0,7) : (g.mes ? addMes(g.mes,1) : mes), pago_em: g.pago_em ? addMeses(g.pago_em,1) : null, comprovantes_ok:false};
+  openGasto(null, null, {copia, venc});
 }
 // abre uma repetição programada como um pagamento normal (com comprovantes e observação)
 function abrirRepeticao(recId, data, sit){ openGasto(null, null, {recId, venc:data, sit}); }

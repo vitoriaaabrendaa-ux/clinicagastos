@@ -74,16 +74,16 @@ function svgGauge(pc, {rotulo='', sub='', tamanho=260}={}){
   const pt = (p, r=R) => [cx + r*Math.cos(ang(p)), cy - r*Math.sin(ang(p))];
   const arco = (p1, p2, r=R) => { const [x1,y1]=pt(p1,r), [x2,y2]=pt(p2,r); return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${r} ${r} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`; };
   const g = gid('gg');
-  const zonas = [[0,40,'#C2413A'],[40,75,'#D99A3D'],[75,100,'#5E8C61']]
+  const zonas = [[0,40,'#B5563A'],[40,75,'#C9922F'],[75,100,'#7E5235']]
     .map(([a,b,c])=>`<path d="${arco(a+0.6,b-0.6,R+esp/2+9)}" stroke="${c}" stroke-width="4" fill="none" stroke-linecap="round" opacity=".7"/>`).join('');
   const ticks = [0,25,50,75,100].map(p=>{ const [x1,y1]=pt(p,R-esp/2-6), [x2,y2]=pt(p,R-esp/2-14), [tx,ty]=pt(p,R-esp/2-28);
     return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--tx-3)" stroke-width="2" stroke-linecap="round"/><text x="${tx}" y="${ty+4}" text-anchor="middle" style="font-size:11px;fill:var(--tx-3);font-weight:700">${p}</text>`; }).join('');
   const pcv = Math.max(0, Math.min(100, pc));
   const [nx,ny] = pt(pcv, R-esp/2-20);
-  const cor = pc>=100 ? '#5E8C61' : pc>=75 ? '#5E8C61' : pc>=40 ? '#D99A3D' : '#C2413A';
+  const cor = pc>=75 ? '#7E5235' : pc>=40 ? '#C9922F' : '#B5563A';
   return `<div class="chart gauge" style="max-width:${tamanho}px;margin:0 auto">
     <svg viewBox="0 0 300 200" role="img" aria-label="${pc.toFixed(0)}% da meta">
-      <defs><linearGradient id="${g}" x1="0" x2="1"><stop offset="0" stop-color="#C2413A"/><stop offset=".5" stop-color="#D99A3D"/><stop offset="1" stop-color="#5E8C61"/></linearGradient></defs>
+      <defs><linearGradient id="${g}" x1="0" x2="1"><stop offset="0" stop-color="#D27A4F"/><stop offset=".5" stop-color="#C9922F"/><stop offset="1" stop-color="#7E5235"/></linearGradient></defs>
       ${zonas}
       <path d="${arco(0,100)}" stroke="var(--linha-2)" stroke-width="${esp}" fill="none" stroke-linecap="round"/>
       ${pcv>0.5?`<path d="${arco(0,pcv)}" stroke="url(#${g})" stroke-width="${esp}" fill="none" stroke-linecap="round"/>`:''}

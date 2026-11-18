@@ -41,15 +41,19 @@
       <div class="head">
         <div><div class="eyebrow">Painel</div><h1>Visão geral</h1><p class="desc">O que vence, o que já saiu e para onde está indo o dinheiro da clínica.</p></div>
         <div class="spacer"></div>
-        <div class="monthpick glass"><button onclick="shiftMonth(-1)" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><span class="lbl mesLbl"></span><button onclick="shiftMonth(1)" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button></div>
         <button class="btn so-desk" onclick="openGasto()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo gasto</button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-6px 0 18px">
+        <div class="seg glass" id="gPerSeg"><button data-p="mes" class="on" onclick="setGPer('mes')">Mês</button><button data-p="7" onclick="setGPer('7')">7 dias</button><button data-p="14" onclick="setGPer('14')">14 dias</button><button data-p="tudo" onclick="setGPer('tudo')">Total</button><button data-p="custom" onclick="setGPer('custom')">De… até…</button></div>
+        <div class="monthpick glass" id="gMonth"><button onclick="shiftMonth(-1)" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><span class="lbl mesLbl"></span><button onclick="shiftMonth(1)" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button></div>
+        <div class="range" id="gRange" style="display:none"><input type="date" id="gDe" onchange="renderGeral()"><span class="ate">até</span><input type="date" id="gAte" onchange="renderGeral()"></div>
       </div>
       <div id="bannerLemb"></div>
       <div class="semana glass" id="semana"></div>
       <div class="kpis" id="kpis"><div class="carregando"><i></i>Carregando dados…</div></div>
       <div class="grid-3-2 row">
         <div class="panel glass"><header><h2>Evolução dos gastos</h2><span class="hint">últimos meses e o que vem</span></header><div class="pbody" id="gEvol"></div></div>
-        <div class="panel glass"><header><h2>Por categoria</h2><span class="hint mesLbl"></span></header><div class="pbody" id="gCat"></div></div>
+        <div class="panel glass"><header><h2>Por categoria</h2><span class="hint gPerLbl"></span></header><div class="pbody" id="gCat"></div></div>
       </div>
       <div class="grid2 row">
         <div class="panel glass"><header><h2>Próximos pagamentos</h2><span class="hint">vencidos e próximos 30 dias</span></header><div class="pbody" id="proximos"></div></div>

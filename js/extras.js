@@ -124,7 +124,7 @@ function renderEventoDetalhe(e, host){
   document.getElementById('evHead').style.display = 'none';
   const r = resumoEvento(e), q = quandoEvento(e);
   const cats = Object.entries(r.cs.reduce((a,c)=>{ const k=c.categoria||'Outros'; a[k]=(a[k]||0)+(+c.valor||0); return a; },{}))
-    .map(([nome,total],i)=>({nome,total,cor:[CORES.pri,CORES.ouro,CORES.verde,CORES.azul,CORES.verm,CORES.marrom,'#D27A4F','#A3B96A','#8C5A36','#E9BC52'][i%10]})).sort((a,b)=>b.total-a.total);
+    .map(([nome,total],i)=>({nome,total,cor:[CORES.pri,CORES.ouro,CORES.verde,CORES.azul,CORES.verm,CORES.marrom,'#D27A4F','#D9B99B','#8C5A36','#E9BC52'][i%10]})).sort((a,b)=>b.total-a.total);
   const ordem = r.cs.slice().sort((a,b)=>(a.vencimento||'9').localeCompare(b.vencimento||'9') || (b.valor-a.valor));
   host.innerHTML = `
     <button class="voltar" onclick="abrirEvento(null)">${IC2.back}Todos os eventos</button>

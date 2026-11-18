@@ -264,7 +264,7 @@ async function api(tabela, metodo, corpo, filtro){
 function seed(){
   DB.categorias = [
     {id:'cat_aluguel',nome:'Aluguel',cor:'#D99A3D'},{id:'cat_obra',nome:'Obra e reforma',cor:'#B5563A'},
-    {id:'cat_equip',nome:'Equipamentos',cor:'#8A6A3B'},{id:'cat_mkt',nome:'Marketing',cor:'#5E8C61'},
+    {id:'cat_equip',nome:'Equipamentos',cor:'#8A6A3B'},{id:'cat_mkt',nome:'Marketing',cor:'#A47552'},
     {id:'cat_contab',nome:'Contabilidade',cor:'#4F6D8A'},{id:'cat_util',nome:'Água, luz e internet',cor:'#6E5231'}
   ];
   DB.pagadores = [{id:'pag_vitoria',nome:'Vitória',pix:'',cor:'#D99A3D'},{id:'pag_sabrina',nome:'Sabrina',pix:'',cor:'#B5563A'}];
