@@ -6,10 +6,10 @@
 const SUPABASE_URL = 'https://vcygcxzextvgsufsdmjq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_h3eBSxlVdZ6ttM0b4WT1Aw_Bs-2-X9C';
 
-const TABELAS = ['categorias','pagadores','gastos','previsoes','fornecedores','arquivos','recorrencias','metas','eventos','evento_custos','atas','marcos'];
+const TABELAS = ['categorias','pagadores','gastos','previsoes','fornecedores','arquivos','recorrencias','metas','eventos','evento_custos','atas','marcos','cenarios'];
 const online = !!(SUPABASE_URL && SUPABASE_KEY);
 let erroBanco = '';
-let DB = { categorias:[], pagadores:[], gastos:[], previsoes:[], fornecedores:[], arquivos:[], recorrencias:[], metas:[], eventos:[], evento_custos:[], atas:[], marcos:[] };
+let DB = { categorias:[], pagadores:[], gastos:[], previsoes:[], fornecedores:[], arquivos:[], recorrencias:[], metas:[], eventos:[], evento_custos:[], atas:[], marcos:[], cenarios:[] };
 
 /* ---------- utilidades ---------- */
 const pad = n => String(n).padStart(2,'0');

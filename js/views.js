@@ -51,6 +51,7 @@ const ABAS = [
   ]},
   {g:'Planejar', itens:[
     {id:'eventos', nome:'Eventos', icon:'M12 2l2.6 6.2L21 9l-5 4.5L17.5 20 12 16.8 6.5 20 8 13.5 3 9l6.4-.8z'},
+    {id:'sim', nome:'Simulador de locação', icon:'M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M10 21v-4h4v4'},
     {id:'metas', nome:'Metas', icon:'M12 22a10 10 0 100-20 10 10 0 000 20zM12 16a4 4 0 100-8 4 4 0 000 8zM12 12h.01'},
     {id:'prev', nome:'Orçamentos futuros', icon:'M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z'},
     {id:'reemb', nome:'Reembolsos', icon:'M3 10a9 9 0 0115-4l3 3M21 14a9 9 0 01-15 4l-3-3M21 3v6h-6M3 21v-6h6'}
@@ -88,7 +89,7 @@ const VIEWS = {
   geral:()=>renderGeral(), lembretes:()=>renderLembretes(), cal:()=>renderCalendario(), lanc:()=>renderLanc(),
   rel:()=>renderRelatorio(), fixos:()=>renderFixos(), var:()=>renderVariaveis(), rec:()=>renderRec(),
   cat:()=>renderCategorias(), metas:()=>renderMetas(), prev:()=>renderPrev(), reemb:()=>renderReembolsos(),
-  forn:()=>renderForn(), arq:()=>renderArq(), eventos:()=>renderEventos(), atas:()=>renderAtas()
+  forn:()=>renderForn(), arq:()=>renderArq(), eventos:()=>renderEventos(), atas:()=>renderAtas(), sim:()=>renderSim()
 };
 // redesenha só a tela aberta (antes redesenhava as 18 telas a cada clique)
 function render(){
@@ -120,7 +121,7 @@ function statusChip(g){
 function linhaGasto(g){
   const k = cat(g.categoria_id), quando = dataDoGasto(g), parc = parcelaTxt(g);
   return `<tr>
-    <td><b>${esc(g.descricao)}</b> ${parc?`<span class="chip parc" title="Pagamento ${parc} do contrato">${parc}</span>`:''}${g.recorrencia_id&&!parc?' <span class="chip rec">recorrente</span>':''}
+    <td><b>${esc(g.descricao)}</b> ${g.recorrencia_id?`<span class="chip ${parc?'parc':'rec'}" title="Recorrente${parc?' · pagamento '+parc:''}">↻ ${parc||'recorrente'}</span>`:''}
       <div class="sub-line">${[g.fornecedor, formaTxt(g)].filter(Boolean).map(esc).join(' · ')}</div>
       ${g.obs?`<div class="sub-line" style="max-width:340px">${esc(g.obs)}</div>`:''}</td>
     <td>${chipCat(k)}<div class="sub-line">${g.tipo==='fixo'?'fixo':'variável'}</div></td>
@@ -146,7 +147,7 @@ function linhaRecPendente(r, data){
     <td><span class="chip rec">Programado</span></td>
     <td>${NADA}</td>
     <td class="num">${brl(r.valor)}</td>
-    <td class="acts"><button class="btn xs" onclick="lancarRec('${r.id}','${data}')">Lançar</button>
+    <td class="acts"><button class="btn xs ok" onclick="abrirRepeticao('${r.id}','${data}','ambas')">Pagar</button><button class="btn xs ghost" onclick="abrirRepeticao('${r.id}','${data}')">Abrir</button>
       <button class="iconbtn" onclick="openRec('${r.id}')" aria-label="Editar recorrência">${IC.edit}</button></td></tr>`;
 }
 function tabela(linhas, vz){ return linhas.length ? `<div class="tw"><table>${CABEC}<tbody>${linhas.join('')}</tbody></table></div>` : vz; }
@@ -182,7 +183,7 @@ function proximosHTML(limite=6){
       <div class="pinfo"><div class="nm">${esc(x.descricao)} ${parc?`<span class="chip parc">${parc}</span>`:''}${it.tipo==='r'&&!parc?'<span class="chip rec">recorrente</span>':''}</div>
         <div class="sub">${quandoTxt(it.data)}${k?' · '+esc(k.nome):''}${x.forma?' · '+esc(x.forma):''}</div></div>
       <div class="pval">${brl(x.valor)}</div>
-      ${it.tipo==='g' ? `<button class="btn sm ok" onclick="openPagar('${x.id}')">Pagar</button>` : `<button class="btn sm ghost" onclick="lancarRec('${x.id}','${it.data}')">Lançar</button>`}
+      ${it.tipo==='g' ? `<button class="btn sm ok" onclick="openPagar('${x.id}')">Pagar</button>` : `<button class="btn sm ok" onclick="abrirRepeticao('${x.id}','${it.data}','ambas')">Pagar</button>`}
     </div>`; }).join('')}</div>`;
 }
 function diasDesembolsoHTML(m){
@@ -253,7 +254,7 @@ function renderLembretes(){
   const hoje = hojeISO();
   const pags = [
     ...L.vencidos.map(g=>({d:g.vencimento, html:linha('venc', IC.alert, `${esc(g.descricao)} · ${brl(g.valor)}`, `${quandoTxt(g.vencimento)} (${dBR(g.vencimento)})${parcelaTxt(g)?' · pagamento '+parcelaTxt(g):''}`, `<button class="btn sm ok" onclick="openPagar('${g.id}')">Pagar</button>`)})),
-    ...L.recs.map(x=>({d:x.data, html:linha(x.data<hoje?'venc':'pag', IC.rep, `${esc(x.r.descricao)} · ${brl(x.r.valor)}`, `${x.data<hoje?'não foi lançado e ':''}${quandoTxt(x.data)} (${dBR(x.data)})${parcelaRecTxt(x.r,x.data)?' · pagamento '+parcelaRecTxt(x.r,x.data):''}`, `<button class="btn sm ghost" onclick="lancarRec('${x.r.id}','${x.data}')">Lançar</button><button class="btn sm ok" onclick="lancarEPagar('${x.r.id}','${x.data}')">Já paguei</button>`)})),
+    ...L.recs.map(x=>({d:x.data, html:linha(x.data<hoje?'venc':'pag', IC.rep, `${esc(x.r.descricao)} · ${brl(x.r.valor)}`, `${x.data<hoje?'ainda não foi pago e ':''}${quandoTxt(x.data)} (${dBR(x.data)})${parcelaRecTxt(x.r,x.data)?' · pagamento '+parcelaRecTxt(x.r,x.data):''}`, `<button class="btn sm ghost" onclick="abrirRepeticao('${x.r.id}','${x.data}')">Abrir</button><button class="btn sm ok" onclick="lancarEPagar('${x.r.id}','${x.data}')">Já paguei</button>`)})),
     ...L.proximos.map(g=>({d:g.vencimento, html:linha('pag', IC.clock, `${esc(g.descricao)} · ${brl(g.valor)}`, `${quandoTxt(g.vencimento)} (${dBR(g.vencimento)})${parcelaTxt(g)?' · pagamento '+parcelaTxt(g):''}${g.destino?' · '+esc(g.destino):''}`, `<button class="btn sm ok" onclick="openPagar('${g.id}')">Pagar</button>`)}))
   ].sort((a,b)=>a.d.localeCompare(b.d)).map(x=>x.html).join('');
 
@@ -331,7 +332,7 @@ function itemCal(i, agenda){
     return `<div class="${cls} evento" onclick="event.stopPropagation();openCustoEvento('${i.g.id}')"><div style="flex:1"><div class="${n}">${esc(i.g.descricao)}</div><div class="${s}">${ev?esc(ev.nome):'evento'} · ${i.g.status==='pago'?'pago':'a pagar'}</div></div>${val}</div>`; }
   if(i.tipo==='prev') return `<div class="${cls} prev" onclick="event.stopPropagation();openPrev('${i.g.id}')"><div style="flex:1"><div class="${n}">${esc(i.g.descricao)}</div><div class="${s}">orçamento previsto</div></div>${val}</div>`;
   if(i.tipo==='rec'){ const p = parcelaRecTxt(i.g, i.data);
-    return `<div class="${cls} rec" onclick="event.stopPropagation();lancarRecConfirma('${i.g.id}','${i.data}')" title="Clique para lançar"><div style="flex:1"><div class="${n}">${esc(i.g.descricao)}${p?' · '+p:''}</div><div class="${s}">programado</div></div>${val}</div>`; }
+    return `<div class="${cls} rec" onclick="event.stopPropagation();abrirRepeticao('${i.g.id}','${i.data}')" title="Abrir este mês"><div style="flex:1"><div class="${n}">${esc(i.g.descricao)}${p?' · '+p:''}</div><div class="${s}">programado</div></div>${val}</div>`; }
   const g = i.g, st = g.pago ? 'q' : (atrasado(g) ? 'atrasado' : ''), p = parcelaTxt(g);
   return `<div class="${cls} ${st}" onclick="event.stopPropagation();openGasto('${g.id}')"><div style="flex:1"><div class="${n}">${esc(g.descricao)}${p?' · '+p:''}</div><div class="${s}">${g.pago?'pago':(atrasado(g)?'vencido':'em aberto')}</div></div>${val}</div>`;
 }
@@ -421,7 +422,7 @@ function cardContrato(r){
     ${prog}
     <div class="meta">${r.ate?`Termina em <b>${mesNome(r.ate.slice(0,7))}</b>`:'Sem data para acabar'}${info.proxima?` · próximo: <b>${dBR(info.proxima)}</b>`:''}${k?` · ${esc(k.nome)}`:''}${r.destino?`<br><span class="mono">${esc(r.destino)}</span>`:''}</div>
     <div class="acts">
-      ${info.proxima && !jaLancadaData(r, info.proxima) ? `<button class="btn xs" onclick="lancarRec('${r.id}','${info.proxima}')">Lançar ${dBR(info.proxima).slice(0,5)}</button>` : ''}
+      ${info.proxima && !jaLancadaData(r, info.proxima) ? `<button class="btn xs ok" onclick="abrirRepeticao('${r.id}','${info.proxima}','ambas')">Pagar ${dBR(info.proxima).slice(0,5)}</button>` : ''}
       ${abertoDaRec(r) ? `<button class="btn xs ok" onclick="openPagar('${abertoDaRec(r).id}')">Pagar ${dBR(abertoDaRec(r).vencimento||'').slice(0,5)}</button>` : ''}
       ${r.destino?`<button class="iconbtn" onclick="copiar(this.dataset.v)" data-v="${esc(r.destino)}" aria-label="Copiar pix" title="Copiar pix">${IC.copy}</button>`:''}
       <div class="spacer"></div>
@@ -489,7 +490,7 @@ function renderRec(){
   document.getElementById('recAgenda').innerHTML = Object.keys(porDia).length ? Object.keys(porDia).sort().map(d=>{
     const dt=new Date(d+'T00:00:00'), itens=porDia[d];
     return `<div class="agdia ${d===hojeISO()?'hoje':''}"><div class="agdata"><div class="d">${dt.getDate()}</div><div class="w">${DIAS[dt.getDay()]} · ${MES3[dt.getMonth()]}</div><div class="t">${brl(itens.reduce((s,x)=>s+(+x.r.valor||0),0))}</div></div>
-      <div class="agitens">${itens.map(x=>`<div class="agitem rec" onclick="openRec('${x.r.id}')"><div style="flex:1"><div class="n">${esc(x.r.descricao)} ${parcelaRecTxt(x.r,x.data)?`<span class="chip parc">${parcelaRecTxt(x.r,x.data)}</span>`:''}</div><div class="s">${[x.r.forma,x.r.destino].filter(Boolean).map(esc).join(' · ')}</div></div><div class="v">${brl(x.r.valor)}</div><button class="btn xs" onclick="event.stopPropagation();lancarRec('${x.r.id}','${x.data}')">Lançar</button></div>`).join('')}</div></div>`; }).join('')
+      <div class="agitens">${itens.map(x=>`<div class="agitem rec" onclick="openRec('${x.r.id}')"><div style="flex:1"><div class="n">${esc(x.r.descricao)} ${parcelaRecTxt(x.r,x.data)?`<span class="chip parc">${parcelaRecTxt(x.r,x.data)}</span>`:''}</div><div class="s">${[x.r.forma,x.r.destino].filter(Boolean).map(esc).join(' · ')}</div></div><div class="v">${brl(x.r.valor)}</div><button class="btn xs ok" onclick="event.stopPropagation();abrirRepeticao('${x.r.id}','${x.data}','ambas')">Pagar</button></div>`).join('')}</div></div>`; }).join('')
     : vazio('Nada a repetir nos próximos 45 dias');
   document.getElementById('recCards').innerHTML = DB.recorrencias.slice().sort((a,b)=>(+b.valor||0)-(+a.valor||0)).map(cardContrato).join('') || `<div class="panel glass" style="grid-column:1/-1">${vazio('Nenhuma recorrência','Aluguel, internet, contabilidade: cadastre uma vez e o app lembra todo mês.')}</div>`;
 }

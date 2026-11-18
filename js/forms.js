@@ -38,38 +38,47 @@ function sitDoGasto(g){
   if(g.quem_pagou) return g.quem_pagou;
   return socias().some(p=>p.id===g.pagador_id) ? 'uma' : 'ambas';
 }
+let fRec = null; // recorrência deste formulário (gasto já ligado ou repetição programada que vai ser lançada)
 function openGasto(id, tipoPadrao, preset={}){
   const g = id ? DB.gastos.find(x=>x.id===id) : null;
   fGasto = g;
-  const rec = recDoGasto(g);
-  fTipo = g?.tipo || tipoPadrao || 'variavel';
-  fSit = fSitOrig = sitDoGasto(g);
-  fDur = rec ? (rec.ate ? 'n' : 'sem') : (g ? 'so' : 'n');
+  const recPre = !g && preset.recId ? DB.recorrencias.find(r=>r.id===preset.recId) : null;
+  fRec = recDoGasto(g) || recPre;
+  // base dos campos: o gasto, ou os dados da recorrência quando é uma repetição programada
+  const b = g || (recPre ? {descricao:recPre.descricao, valor:recPre.valor, categoria_id:recPre.categoria_id, forma:recPre.forma, destino:recPre.destino, fornecedor:recPre.fornecedor, tipo:recPre.tipo||'fixo'} : {});
+  fTipo = b.tipo || tipoPadrao || 'variavel';
+  fSit = fSitOrig = g ? sitDoGasto(g) : (preset.sit || 'aberto');
+  fDur = g || recPre ? 'so' : 'n';
   const venc = g?.vencimento || preset.venc || '';
-  const forma = g?.forma || 'Pix';
+  const forma = b.forma || 'Pix';
   const quem = (fSit==='uma' && g?.pagador_id) || socias()[0]?.id;
   const reemb = g?.reembolso && g.reembolso!=='nao' ? g.reembolso : (g && fSit==='uma' ? 'nao' : 'pendente');
-  const nTotal = rec?.ate ? recInfo(rec).total : '';
-  abrir(`${hdr(g?'Editar gasto':(preset.venc?`Novo pagamento em ${dBR(preset.venc)}`:'Novo gasto'))}
+  const parc = fRec ? (g ? parcelaTxt(g) : parcelaRecTxt(fRec, venc)) : '';
+  const titulo = g ? 'Editar gasto' : recPre ? `${esc(recPre.descricao)} · ${dBR(venc)}` : (preset.venc ? `Novo pagamento em ${dBR(preset.venc)}` : 'Novo gasto');
+  const caixaRec = fRec ? `<div class="caixa" id="box-rec">
+      <div class="tit">${IC.rep} Recorrente${parc?` · pagamento ${parc}`:''}</div>
+      <div class="f full" style="font-size:12.5px;color:var(--tx-2)">Faz parte de <b>${esc(fRec.descricao)}</b> · ${freqTxt(fRec)}${fRec.ate?` · até ${dBR(fRec.ate)}`:' · sem data para acabar'}.
+        Se mudar valor, dia ou forma de pagamento, eu pergunto se vale só para este mês ou para os próximos também.</div>
+      <div class="f full"><button type="button" class="btn sm ghost" style="width:fit-content" onclick="fechar();openRec('${fRec.id}')">${IC.edit}Editar a recorrência inteira</button></div>
+    </div>` : `<div class="caixa ${fTipo==='fixo'?'':'hide'}" id="box-fixo">
+      <div class="tit">${IC.rep} Custo fixo: por quanto tempo?</div>
+      <div class="f full">${seg2('dur',[['n','Nº de pagamentos'],['data','Até uma data'],['sem','Sem data para acabar'],['so','Só este mês']],fDur,'setDur')}</div>
+      <div class="f" id="box-n"><label>Quantos pagamentos no total</label><input id="f-n" type="number" min="1" max="240" placeholder="ex: 6" oninput="prevFixo()"></div>
+      <div class="f" id="box-ate"><label>Último pagamento em</label><input id="f-ate" type="date" onchange="prevFixo()"></div>
+      <div class="preview" id="f-prev"></div>
+    </div>`;
+  abrir(`${hdr(titulo, recPre?'repetição programada: confira, anexe o comprovante e salve':'')}
     <div class="mbody"><div class="fgrid">
-      <div class="f full"><label>Descrição</label><input id="f-desc" value="${esc(g?.descricao)}" placeholder="Aluguel, assessoria jurídica, material elétrico"></div>
-      <div class="f"><label>Valor</label><input id="f-valor" type="number" step="0.01" inputmode="decimal" value="${g?.valor??''}" placeholder="0,00" oninput="prevFixo()"></div>
+      <div class="f full"><label>Descrição</label><input id="f-desc" value="${esc(b.descricao)}" placeholder="Aluguel, assessoria jurídica, material elétrico"></div>
+      <div class="f"><label>Valor</label><input id="f-valor" type="number" step="0.01" inputmode="decimal" value="${b.valor??''}" placeholder="0,00" oninput="prevFixo();dicaSit()"></div>
       <div class="f"><label>Vencimento</label><input id="f-venc" type="date" value="${venc}" onchange="onVencChange()"></div>
-      <div class="f"><label>Categoria</label><select id="f-cat">${opcoesCat(g?.categoria_id)}</select></div>
+      <div class="f"><label>Categoria</label><select id="f-cat">${opcoesCat(b.categoria_id)}</select></div>
       <div class="f"><label>Mês de referência</label><input id="f-mes" type="month" value="${g?.mes || (venc?venc.slice(0,7):mes)}"></div>
       <div class="f"><label>Tipo de custo</label>${seg2('tipo',[['fixo','Fixo'],['variavel','Variável']],fTipo,'setTipo')}</div>
       <div class="f"><label>Forma de pagamento</label><select id="f-forma" onchange="onFormaChange()">${FORMAS.map(f=>`<option ${forma===f?'selected':''}>${f}</option>`).join('')}</select></div>
-
-      <div class="caixa ${fTipo==='fixo'?'':'hide'}" id="box-fixo">
-        <div class="tit">${IC.rep} Custo fixo: por quanto tempo?</div>
-        <div class="f full">${seg2('dur',[['n','Nº de pagamentos'],['data','Até uma data'],['sem','Sem data para acabar'],['so','Só este mês']],fDur,'setDur')}</div>
-        <div class="f" id="box-n"><label>Quantos pagamentos no total</label><input id="f-n" type="number" min="1" max="240" value="${nTotal}" placeholder="ex: 6" oninput="prevFixo()"></div>
-        <div class="f" id="box-ate"><label>Último pagamento em</label><input id="f-ate" type="date" value="${rec?.ate||''}" onchange="prevFixo()"></div>
-        <div class="preview" id="f-prev"></div>
-      </div>
-
+      ${caixaRec}
       <div class="f hide" id="box-parcelas"><label>Em quantas vezes no cartão</label><input id="f-parcelas" type="number" min="1" max="48" value="${g?.parcelas||1}"></div>
-      <div class="f full"><label id="lbl-destino">Chave pix de destino</label><input id="f-destino" value="${esc(g?.destino)}" list="pixlist" placeholder="Chave pix, banco ou nome de quem recebe">${listaPix('pixlist')}</div>
+      <div class="f full"><label id="lbl-destino">Chave pix de destino</label><input id="f-destino" value="${esc(b.destino)}" list="pixlist" placeholder="Chave pix, banco ou nome de quem recebe">${listaPix('pixlist')}</div>
 
       <div class="f full"><label>Situação: as duas sócias já pagaram ou só uma?</label>${seg2('sit',[['aberto','Ainda não foi pago'],['ambas','As duas pagaram'],['uma','Só uma pagou']],fSit,'setSit')}
         <div class="dica" id="dica-sit"></div></div>
@@ -82,14 +91,16 @@ function openGasto(id, tipoPadrao, preset={}){
       </div>
       <div class="f ${fSit!=='aberto'?'':'hide'}" id="box-pagoem"><label>Pago no dia</label><input id="f-pagoem" type="date" value="${g?.pago_em||hojeISO()}"></div>
 
-      ${camposAnexos('fa', anexosDe(g), rotulosAnexo(g?{...g, pago:fSit!=='aberto', quem_pagou:fSit}:{pago:false}))}
+      ${camposAnexos('fa', anexosDe(g), rotulosAnexo({...(g||{}), pago:fSit!=='aberto', quem_pagou:fSit}))}
 
-      <div class="f"><label>Fornecedor</label><input id="f-forn" list="fornlist" value="${esc(g?.fornecedor)}" placeholder="opcional">${listaForn('fornlist')}</div>
+      <div class="f"><label>Fornecedor</label><input id="f-forn" list="fornlist" value="${esc(b.fornecedor)}" placeholder="opcional">${listaForn('fornlist')}</div>
       <div class="f full"><label>Observação</label><textarea id="f-obs" placeholder="Qualquer detalhe que vocês queiram lembrar">${esc(g?.obs)}</textarea></div>
     </div></div>
-    ${pe(`salvarGasto('${id||''}')`, 'Salvar gasto')}`);
-  onFormaChange(); setDur(fDur); dicaSit();
+    ${pe(`salvarGasto('${id||''}')`, recPre ? 'Salvar este mês' : 'Salvar gasto')}`);
+  onFormaChange(); if(!fRec) setDur(fDur); dicaSit();
 }
+// abre uma repetição programada como um pagamento normal (com comprovantes e observação)
+function abrirRepeticao(recId, data, sit){ openGasto(null, null, {recId, venc:data, sit}); }
 function setTipo(t){ fTipo=t; marcaSeg('tipo',t); mostra('box-fixo', t==='fixo'); prevFixo(); }
 function setDur(d){ fDur=d; marcaSeg('dur',d); mostra('box-n', d==='n'); mostra('box-ate', d==='data'); prevFixo(); }
 function setSit(s){
@@ -110,12 +121,11 @@ function onFormaChange(){
   mostra('box-parcelas', forma.indexOf('Cartão')>-1);
   const l = document.getElementById('lbl-destino'); if(l) l.textContent = forma==='Pix' ? 'Chave pix de destino' : 'Para quem / dados do pagamento';
 }
-// recorrência "simulada" com o que está no formulário
+// recorrência "simulada" com o que está no formulário (para um custo fixo novo)
 function recDoForm(){
-  const recAnt = recDoGasto(fGasto);
   const venc = val('f-venc'), mesRef = val('f-mes') || mes;
-  const base = venc || `${mesRef}-${pad(recAnt?.dia||10)}`;
-  return {...(recAnt||{}), frequencia: recAnt?.frequencia||'mensal', dia: recAnt?.dia || +base.slice(8,10), inicio: recAnt?.inicio || base, mes_ano: recAnt?.mes_ano||1, dia_semana: recAnt?.dia_semana||0, base};
+  const base = venc || `${mesRef}-10`;
+  return {frequencia:'mensal', dia: +base.slice(8,10), inicio: base, mes_ano:1, dia_semana:0, base};
 }
 function ateParaN(r, N){
   const fim = r.frequencia==='anual' ? addMeses(r.inicio, 12*N+12) : addMeses(r.inicio, N+2);
@@ -124,16 +134,17 @@ function ateParaN(r, N){
 }
 function prevFixo(){
   const el = document.getElementById('f-prev'); if(!el) return;
-  if(fTipo!=='fixo'){ el.innerHTML=''; return; }
-  const r = recDoForm(), v = num('f-valor')||0, recAnt = recDoGasto(fGasto);
-  const posicao = recAnt && fGasto ? indiceNaRec(recAnt, fGasto.vencimento || r.base) : 1;
-  if(fDur==='so'){ el.innerHTML = recAnt ? `A recorrência termina neste lançamento (${dBR(r.base)}).` : 'Só este lançamento, sem repetir.'; return; }
-  if(fDur==='sem'){ el.innerHTML = `Repete <b>todo dia ${r.dia}</b>, de ${dBR(r.inicio)} em diante, até vocês pausarem. Conta ${posicao}º, ${posicao+1}º… sem total.`; return; }
+  if(fTipo!=='fixo' || fRec){ el.innerHTML=''; return; }
+  const r = recDoForm(), v = num('f-valor')||0;
+  if(fDur==='so'){ el.innerHTML = 'Só este lançamento, sem repetir.'; return; }
+  if(fDur==='sem'){ el.innerHTML = `Repete <b>todo dia ${r.dia}</b>, de ${dBR(r.inicio)} em diante, até vocês pausarem.`; return; }
   let N, ate;
   if(fDur==='n'){ N = parseInt(val('f-n')); if(!(N>=1)){ el.innerHTML='Diga quantos pagamentos são no total (ex: 6) e o app conta <b>1/6, 2/6…</b> sozinho.'; return; } ate = ateParaN(r, N); }
   else { ate = val('f-ate'); if(!ate){ el.innerHTML='Escolha a data do último pagamento.'; return; } N = ocorrencias(r, r.inicio, ate).length; if(!N){ el.innerHTML='A data final é antes do primeiro pagamento.'; return; } }
-  el.innerHTML = `<b>${N} pagamentos</b> de ${brl(v)} = <b>${brl(v*N)}</b> · do dia ${dBR(r.inicio)} até <b>${dBR(ate)}</b>${recAnt?` · este é o <b>${Math.min(posicao,N)}/${N}</b>`:' · este é o <b>1/'+N+'</b>'}`;
+  el.innerHTML = `<b>${N} pagamentos</b> de ${brl(v)} = <b>${brl(v*N)}</b> · do dia ${dBR(r.inicio)} até <b>${dBR(ate)}</b> · este é o <b>1/${N}</b>`;
 }
+const semNumero = s => String(s||'').replace(/\s*-?\s*\d+\s*\/\s*\d+\s*$/,'').trim();
+let pendGasto = null;
 async function salvarGasto(id){
   const desc = val('f-desc'), valor = num('f-valor');
   if(!desc) return aviso('Dê um nome ao gasto para poder salvar.');
@@ -151,30 +162,21 @@ async function salvarGasto(id){
   const pagador_id = legado ? antigo.pagador_id : fSit==='uma' ? quem : fSit==='ambas' ? (regSocias?.id||null) : null;
   const outra = quem ? outraSocia(quem) : null;
 
-  // custo fixo: cria ou ajusta a recorrência mensal
-  let recId = antigo?.recorrencia_id || null;
-  if(fTipo==='fixo'){
-    const r = recDoForm(), recAnt = recDoGasto(antigo);
-    let ate, criar = true;
-    if(fDur==='so'){ if(recAnt) ate = r.base; else criar = false; }
-    else if(fDur==='n'){ const N = parseInt(val('f-n')); if(!(N>=1)) return aviso('Diga quantos pagamentos são no total, ou escolha "Só este mês".'); ate = ateParaN(r, N); }
+  let recNova = null, recId = antigo?.recorrencia_id || fRec?.id || null;
+  // custo fixo novo: cria a recorrência
+  if(fTipo==='fixo' && !fRec && fDur!=='so'){
+    const r = recDoForm();
+    let ate = null;
+    if(fDur==='n'){ const N = parseInt(val('f-n')); if(!(N>=1)) return aviso('Diga quantos pagamentos são no total, ou escolha "Só este mês".'); ate = ateParaN(r, N); }
     else if(fDur==='data'){ ate = val('f-ate'); if(!ate) return aviso('Escolha a data do último pagamento.'); }
-    else ate = null;
-    if(criar){
-      const rec = {
-        id: recAnt?.id || novoId(), descricao: desc.replace(/\s*-?\s*\d+\s*\/\s*\d+\s*$/,'').trim() || desc,
-        valor, frequencia: r.frequencia, dia: r.dia, mes_ano: r.mes_ano, dia_semana: r.dia_semana, inicio: r.inicio, ate,
-        forma: forma||null, destino: val('f-destino')||null, categoria_id: val('f-cat')||null, pagador_id: recAnt?.pagador_id||null,
-        tipo:'fixo', fornecedor: val('f-forn')||null, obs: recAnt?.obs||null, pausada: !!recAnt?.pausada,
-        anexos: recAnt?.anexos || [], criado: recAnt?.criado || new Date().toISOString()
-      };
-      if(!await salvar('recorrencias', rec)) return;
-      recId = rec.id;
-    }
+    recNova = {id: novoId(), descricao: semNumero(desc) || desc, valor, frequencia:'mensal', dia:r.dia, mes_ano:1, dia_semana:0, inicio:r.inicio, ate,
+      forma: forma||null, destino: val('f-destino')||null, categoria_id: val('f-cat')||null, pagador_id:null,
+      tipo:'fixo', fornecedor: val('f-forn')||null, obs:null, pausada:false, anexos:[], criado:new Date().toISOString()};
+    recId = recNova.id;
   }
-  const anexos = lerAnexos('fa'), gastoId = id || novoId();
-  const ok = await salvar('gastos', {
-    id: gastoId, descricao: desc, valor, mes: mesRef,
+  const anexos = lerAnexos('fa');
+  const gasto = {
+    id: id || novoId(), descricao: desc, valor, mes: mesRef,
     categoria_id: val('f-cat') || null, pagador_id, tipo: fTipo, pago,
     vencimento: venc, pago_em: pago ? (val('f-pagoem') || hojeISO()) : null,
     forma: forma || null, parcelas: forma.indexOf('Cartão')>-1 ? (parseInt(val('f-parcelas'))||1) : 1,
@@ -183,13 +185,44 @@ async function salvarGasto(id){
     fornecedor: val('f-forn') || null, comprovante: primeiroLink(anexos), anexos, obs: val('f-obs') || null,
     quem_pagou, comprovantes_ok: antigo?.comprovantes_ok || false,
     criado: antigo?.criado || new Date().toISOString(), recorrencia_id: recId
-  });
-  if(!ok) return;
+  };
+  pendGasto = {gasto, recNova, novo: !id};
+  // gasto de uma recorrência: se mudou algo que vale para os próximos meses, pergunta
+  if(fRec){
+    const mud = [];
+    if(Math.abs((+fRec.valor||0) - valor) > 0.004) mud.push(`valor ${brl(fRec.valor)} → <b>${brl(valor)}</b>`);
+    if(venc && porMes(fRec) && +venc.slice(8,10) !== +fRec.dia) mud.push(`dia ${fRec.dia} → <b>${+venc.slice(8,10)}</b>`);
+    if((fRec.forma||'') !== (forma||'')) mud.push(`forma ${esc(fRec.forma||'—')} → <b>${esc(forma)}</b>`);
+    if((fRec.destino||'') !== (gasto.destino||'')) mud.push('pix/destino');
+    if((fRec.categoria_id||'') !== (gasto.categoria_id||'')) mud.push('categoria');
+    if(semNumero(fRec.descricao) !== semNumero(desc)) mud.push('nome');
+    if(mud.length){
+      abrir(`${hdr('Editar só este mês ou todos os próximos?')}
+        <div class="mbody"><p style="font-size:13.5px;color:var(--tx-2);margin-bottom:14px">Você mudou: ${mud.join(' · ')} em <b>${esc(fRec.descricao)}</b>.</p>
+        <div class="escolha">
+          <button style="background:var(--grad-pri)" onclick="concluirGasto('so')">${IC.cal}<b>Só este mês</b><span>os próximos continuam como estavam</span></button>
+          <button style="background:var(--grad-pessego)" onclick="concluirGasto('todos')">${IC.rep}<b>Este e os próximos</b><span>atualiza a recorrência daqui pra frente</span></button>
+        </div></div>`);
+      return;
+    }
+  }
+  concluirGasto('so');
+}
+async function concluirGasto(escopo){
+  const p = pendGasto; if(!p) return;
+  pendGasto = null;
+  if(p.recNova && !await salvar('recorrencias', p.recNova)) return;
+  if(escopo==='todos' && fRec){
+    const g = p.gasto;
+    const rec = {...fRec, valor:g.valor, forma:g.forma, destino:g.destino, categoria_id:g.categoria_id, fornecedor:g.fornecedor, descricao: semNumero(g.descricao)||fRec.descricao};
+    if(g.vencimento && porMes(fRec)) rec.dia = +g.vencimento.slice(8,10);
+    if(!await salvar('recorrencias', rec)) return;
+  }
+  if(!await salvar('gastos', p.gasto)) return;
   fechar(); render();
-  const g = DB.gastos.find(x=>x.id===gastoId);
-  const falta = g ? compFaltando(g) : [];
-  const parc = g ? parcelaTxt(g) : '';
-  aviso(falta.length ? `Salvo. Ficou um lembrete: ${falta.map(minusc).join(' e ')}.` : parc ? `Salvo como pagamento ${parc}.` : (id?'Gasto atualizado.':'Gasto lançado.'));
+  const g = DB.gastos.find(x=>x.id===p.gasto.id);
+  const falta = g ? compFaltando(g) : [], parc = g ? parcelaTxt(g) : '';
+  aviso(falta.length ? `Salvo. Ficou um lembrete: ${falta.map(minusc).join(' e ')}.` : escopo==='todos' ? 'Salvo e aplicado aos próximos meses.' : parc ? `Salvo como pagamento ${parc}.` : (p.novo?'Gasto lançado.':'Gasto atualizado.'));
 }
 function novoNoDia(iso){ openGasto(null, null, {venc: iso}); }
 
@@ -284,7 +317,7 @@ async function lancarRec(id, data, silencioso){
   if(!silencioso){ render(); const p = parcelaTxt(g); aviso(`${r.descricao}${p?' '+p:''} de ${dBR(data)} lançado em aberto.`); }
   return g.id;
 }
-async function lancarEPagar(recId, data){ const id = await lancarRec(recId, data, true); if(id){ render(); openPagar(id); } }
+function lancarEPagar(recId, data){ abrirRepeticao(recId, data, 'ambas'); }
 async function pausarRec(id){
   const r = DB.recorrencias.find(x=>x.id===id); if(!r) return;
   if(await salvar('recorrencias',{...r, pausada:!r.pausada})){ render(); aviso(r.pausada?'Recorrência reativada.':'Recorrência pausada: some do calendário até reativar.'); }
