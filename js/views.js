@@ -23,13 +23,13 @@ const IC = {
   lua:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>'
 };
 const NADA = '<span class="muted">—</span>';
-const CORES = {pri:'#B5563A', ouro:'#D99A3D', verde:'#5E8C61', azul:'#4F6D8A', verm:'#C2413A', areia:'#B9A79A'};
+const CORES = {pri:'#B5563A', ouro:'#C9922F', verde:'#7A8B45', azul:'#C49A6C', verm:'#9A4A32', areia:'#B9A79A', marrom:'#6E5231'};
 
 function aviso(txt){
   const t=document.getElementById('toast'); t.textContent=txt; t.classList.add('on');
   clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),3000);
 }
-const kpi = (cls, ic, k, v, d) => `<div class="kpi glass ${cls}"><div class="k"><i>${ic}</i>${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`;
+const kpi = (cls, ic, k, v, d) => `<div class="kpi ${cls}"><div class="k"><i>${ic}</i>${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`;
 const vazio = (t, s) => `<div class="vazio"><b>${t}</b>${s||''}</div>`;
 const chipCat = k => k ? `<span class="chip cat"><span class="dot" style="background:${k.cor||CORES.ouro}"></span>${esc(k.nome)}</span>` : NADA;
 const plural = (n, s, p) => `${n} ${n===1?s:(p||s+'s')}`;
@@ -50,12 +50,14 @@ const ABAS = [
     {id:'cat', nome:'Categorias', icon:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'}
   ]},
   {g:'Planejar', itens:[
+    {id:'eventos', nome:'Eventos', icon:'M12 2l2.6 6.2L21 9l-5 4.5L17.5 20 12 16.8 6.5 20 8 13.5 3 9l6.4-.8z'},
     {id:'metas', nome:'Metas', icon:'M12 22a10 10 0 100-20 10 10 0 000 20zM12 16a4 4 0 100-8 4 4 0 000 8zM12 12h.01'},
     {id:'prev', nome:'Orçamentos futuros', icon:'M12 8v4l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z'},
-    {id:'reemb', nome:'Reembolsos', icon:'M3 10a9 9 0 0115-4l3 3M21 14a9 9 0 01-15 4l-3-3M21 3v6h-6M3 21v-6h6'},
-    {id:'forn', nome:'Fornecedores', icon:'M3 7h18v13H3zM3 7l2-4h14l2 4M9 12h6'}
+    {id:'reemb', nome:'Reembolsos', icon:'M3 10a9 9 0 0115-4l3 3M21 14a9 9 0 01-15 4l-3-3M21 3v6h-6M3 21v-6h6'}
   ]},
-  {g:'Guardar', itens:[
+  {g:'Registros', itens:[
+    {id:'forn', nome:'Fornecedores', icon:'M3 7h18v13H3zM3 7l2-4h14l2 4M9 12h6'},
+    {id:'atas', nome:'Atas de reunião', icon:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h5'},
     {id:'arq', nome:'Arquivos', icon:'M4 6a2 2 0 012-2h4l2 3h6a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2z'}
   ]}
 ];
@@ -66,11 +68,13 @@ function renderNav(){
     if(id==='lembretes' && L.total) return `<span class="badge ${L.urgentes||L.comp.length?'alerta':''}">${L.total}</span>`;
     if(id==='lanc') return `<span class="badge">${doMes().length}</span>`;
     if(id==='reemb' && reemb) return `<span class="badge alerta">${reemb}</span>`;
+    if(id==='eventos'){ const n = DB.eventos.filter(e=>e.data && e.data>=hojeISO()).length; return n?`<span class="badge">${n}</span>`:''; }
     return '';
   };
   document.getElementById('nav').innerHTML = ABAS.map(g=>`<div class="navlab">${g.g}</div>` + g.itens.map(i=>
-    `<button class="nav ${aba===i.id?'on':''}" onclick="irPara('${i.id}')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="${i.icon}"/></svg><span>${i.nome}</span>${badge(i.id)}</button>`
+    `<button class="nav ${aba===i.id?'on':''}" onclick="alternarMenu(false);irPara('${i.id}')"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="${i.icon}"/></svg><span>${i.nome}</span>${badge(i.id)}</button>`
   ).join('')).join('');
+  renderBottomNav();
 }
 function irPara(id){
   aba = id;
@@ -84,7 +88,7 @@ const VIEWS = {
   geral:()=>renderGeral(), lembretes:()=>renderLembretes(), cal:()=>renderCalendario(), lanc:()=>renderLanc(),
   rel:()=>renderRelatorio(), fixos:()=>renderFixos(), var:()=>renderVariaveis(), rec:()=>renderRec(),
   cat:()=>renderCategorias(), metas:()=>renderMetas(), prev:()=>renderPrev(), reemb:()=>renderReembolsos(),
-  forn:()=>renderForn(), arq:()=>renderArq()
+  forn:()=>renderForn(), arq:()=>renderArq(), eventos:()=>renderEventos(), atas:()=>renderAtas()
 };
 // redesenha só a tela aberta (antes redesenhava as 18 telas a cada clique)
 function render(){
@@ -215,9 +219,11 @@ function renderGeral(){
   if(prox) partes.push(plural(prox,'pagamento chegando','pagamentos chegando'));
   if(L.reemb.length) partes.push(plural(L.reemb.length,'reembolso pendente','reembolsos pendentes'));
   if(L.docs.length) partes.push(plural(L.docs.length,'documento vencendo','documentos vencendo'));
-  document.getElementById('bannerLemb').innerHTML = partes.length ? `<div class="banner glass" onclick="irPara('lembretes')">
+  if(L.datas.length) partes.push(plural(L.datas.length,'data importante chegando','datas importantes chegando'));
+  document.getElementById('bannerLemb').innerHTML = partes.length ? `<div class="banner" onclick="irPara('lembretes')">
     <div class="ic">${IC.sino}</div><div><b>Você tem ${plural(L.total,'lembrete')}</b><div class="s">${partes.join(' · ')}</div></div><div class="spacer"></div><span class="btn sm ghost">Ver lembretes</span></div>` : '';
 
+  renderSemana();
   const meses = [-4,-3,-2,-1,0,1].map(d=>addMes(mes,d));
   document.getElementById('gEvol').innerHTML = graficoEvolucao(meses);
   const cats = itensPorCategoria(gs);
@@ -258,7 +264,10 @@ function renderLembretes(){
   const docs = L.docs.map(a=>{ const n=diasAte(a.validade);
     return linha('doc', IC.doc, esc(a.nome), n<0?`venceu há ${-n} dias (${dBR(a.validade)})`:`vence em ${n} dias (${dBR(a.validade)})`, `<button class="btn sm ghost" onclick="openArq('${a.id}')">Abrir</button>`); }).join('');
 
-  const html = sec('Comprovantes para subir', 'pagamentos feitos que ainda não têm comprovante', comp)
+  const datas = L.datas.map(x=>{ const n=diasAte(x.data);
+    return x.tipo==='marco' ? linha('marco', IC2.flag, esc(x.x.titulo), `${tipoMarcoTxt(x.x.tipo)} · ${n===0?'hoje':n===1?'amanhã':'em '+n+' dias'} (${dBR(x.data)})${x.x.obs?' · '+esc(x.x.obs):''}`, `<button class="btn sm ghost" onclick="openMarco('${x.x.id}')">Abrir</button>`)
+      : linha('comp', IC2.festa, esc(x.x.nome), `evento · ${n===0?'hoje':n===1?'amanhã':'em '+n+' dias'} (${dBR(x.data)}) · ${brl(resumoEvento(x.x).aPagar)} a pagar`, `<button class="btn sm ghost" onclick="abrirEvento('${x.x.id}')">Abrir</button>`); }).join('');
+  const html = sec('Datas importantes', 'próximos 14 dias', datas) + sec('Comprovantes para subir', 'pagamentos feitos que ainda não têm comprovante', comp)
     + sec('Pagamentos chegando', 'vencidos e próximos 10 dias', pags)
     + sec('Reembolsos', 'quando uma pagou sozinha', reemb)
     + sec('Documentos', 'vencendo nos próximos 30 dias', docs);
@@ -278,16 +287,48 @@ function setCalModo(m){
   }
   renderCalendario();
 }
-function itensPeriodo(de, ate){
+const FILTROS_CAL = [['pag','Pagamentos','var(--warn)'],['datas','Datas importantes','var(--tx)'],['eventos','Eventos','#C9922F'],['atas','Reuniões','var(--tx-3)'],['prev','Orçamentos previstos','var(--info)']];
+let calFiltro = {pag:true, datas:true, eventos:true, atas:true, prev:true};
+function togFiltro(k){
+  const ligados = Object.keys(calFiltro).filter(x=>calFiltro[x]);
+  if(ligados.length===Object.keys(calFiltro).length) Object.keys(calFiltro).forEach(x=>calFiltro[x]=(x===k)); // primeiro clique: mostra só esse
+  else { calFiltro[k] = !calFiltro[k]; if(!Object.values(calFiltro).some(Boolean)) Object.keys(calFiltro).forEach(x=>calFiltro[x]=true); }
+  renderCalendario();
+}
+function chipsFiltro(){
+  const todos = Object.values(calFiltro).every(Boolean);
+  return `<button class="chipbtn ${todos?'on':''}" onclick="Object.keys(calFiltro).forEach(x=>calFiltro[x]=true);renderCalendario()">Tudo</button>` +
+    FILTROS_CAL.map(([k,t,c])=>`<button class="chipbtn ${!todos&&calFiltro[k]?'on':''}" onclick="togFiltro('${k}')"><i style="background:${c}"></i>${t}</button>`).join('');
+}
+// itens de um intervalo, por dia (respeita os filtros do calendário, a não ser que `todos` seja true)
+function itensPeriodo(de, ate, todos){
+  const F = todos ? {pag:1,datas:1,eventos:1,atas:1,prev:1} : calFiltro;
   const porDia = {}, push = (d,it)=>{ (porDia[d]=porDia[d]||[]).push(it); };
-  DB.gastos.forEach(g=>{ const d=dataDoGasto(g); if(d && d>=de && d<=ate) push(d,{tipo:'gasto',g}); });
-  DB.previsoes.forEach(p=>{ if(p.quando && p.quando>=de && p.quando<=ate) push(p.quando,{tipo:'prev',g:p}); });
-  recPendentes(de,ate).forEach(x=>push(x.data,{tipo:'rec',g:x.r,data:x.data}));
+  const faixa = (ini, fim, fn) => { let d = ini < de ? de : ini; const f = fim && fim > ini ? fim : ini; while(d <= f && d <= ate){ fn(d); d = addDias(d,1); } };
+  if(F.pag){
+    DB.gastos.forEach(g=>{ const d=dataDoGasto(g); if(d && d>=de && d<=ate) push(d,{tipo:'gasto',g}); });
+    recPendentes(de,ate).forEach(x=>push(x.data,{tipo:'rec',g:x.r,data:x.data}));
+  }
+  if(F.prev) DB.previsoes.forEach(p=>{ if(p.quando && p.quando>=de && p.quando<=ate) push(p.quando,{tipo:'prev',g:p}); });
+  if(F.datas) DB.marcos.forEach(m=>{ if(m.data && m.data<=ate && (m.data_fim||m.data)>=de) faixa(m.data, m.data_fim, d=>push(d,{tipo:'marco',g:m})); });
+  if(F.eventos){
+    DB.eventos.forEach(e=>{ if(e.data && e.data<=ate && (e.data_fim||e.data)>=de) faixa(e.data, e.data_fim, d=>push(d,{tipo:'evento',g:e})); });
+    DB.evento_custos.forEach(c=>{ if(c.vencimento && c.vencimento>=de && c.vencimento<=ate) push(c.vencimento,{tipo:'ecusto',g:c}); });
+  }
+  if(F.atas) DB.atas.forEach(a=>{ if(a.data && a.data>=de && a.data<=ate) push(a.data,{tipo:'ata',g:a}); });
+  const ordem = {marco:0, evento:1, ata:2, gasto:3, rec:4, ecusto:5, prev:6};
+  Object.values(porDia).forEach(l=>l.sort((a,b)=>ordem[a.tipo]-ordem[b.tipo]));
   return porDia;
 }
+const valorItem = i => (i.tipo==='marco'||i.tipo==='evento'||i.tipo==='ata') ? 0 : (+i.g.valor||0);
 function itemCal(i, agenda){
   const cls = agenda ? 'agitem' : 'calitem', n = agenda?'n':'cd', s = agenda?'s':'cv';
   const val = agenda ? `<div class="v">${brl(i.g.valor)}</div>` : `<div class="cv">${brl(i.g.valor)}</div>`;
+  if(i.tipo==='marco') return `<div class="${cls} marco" onclick="event.stopPropagation();openMarco('${i.g.id}')"><div style="flex:1"><div class="${n}">${esc(i.g.titulo)}</div><div class="${s}">${tipoMarcoTxt(i.g.tipo)}</div></div></div>`;
+  if(i.tipo==='evento') return `<div class="${cls} evento" onclick="event.stopPropagation();abrirEvento('${i.g.id}')"><div style="flex:1"><div class="${n}">${esc(i.g.nome)}</div><div class="${s}">evento${i.g.local?' · '+esc(i.g.local):''}</div></div></div>`;
+  if(i.tipo==='ata') return `<div class="${cls} ata" onclick="event.stopPropagation();abrirAta('${i.g.id}')"><div style="flex:1"><div class="${n}">${esc(i.g.titulo)}</div><div class="${s}">reunião</div></div></div>`;
+  if(i.tipo==='ecusto'){ const ev = DB.eventos.find(e=>e.id===i.g.evento_id);
+    return `<div class="${cls} evento" onclick="event.stopPropagation();openCustoEvento('${i.g.id}')"><div style="flex:1"><div class="${n}">${esc(i.g.descricao)}</div><div class="${s}">${ev?esc(ev.nome):'evento'} · ${i.g.status==='pago'?'pago':'a pagar'}</div></div>${val}</div>`; }
   if(i.tipo==='prev') return `<div class="${cls} prev" onclick="event.stopPropagation();openPrev('${i.g.id}')"><div style="flex:1"><div class="${n}">${esc(i.g.descricao)}</div><div class="${s}">orçamento previsto</div></div>${val}</div>`;
   if(i.tipo==='rec'){ const p = parcelaRecTxt(i.g, i.data);
     return `<div class="${cls} rec" onclick="event.stopPropagation();lancarRecConfirma('${i.g.id}','${i.data}')" title="Clique para lançar"><div style="flex:1"><div class="${n}">${esc(i.g.descricao)}${p?' · '+p:''}</div><div class="${s}">programado</div></div>${val}</div>`; }
@@ -300,7 +341,7 @@ function lancarRecConfirma(id, data){
 }
 function kpisCal(porDia, gs, prevs, recs, nDias){
   let maiorDia=null, maiorVal=0;
-  Object.keys(porDia).forEach(d=>{ const v=porDia[d].reduce((s,i)=>s+(+i.g.valor||0),0); if(v>maiorVal){maiorVal=v;maiorDia=d;} });
+  Object.keys(porDia).forEach(d=>{ const v=porDia[d].reduce((s,i)=>s+valorItem(i),0); if(v>maiorVal){maiorVal=v;maiorDia=d;} });
   document.getElementById('kpiCal').innerHTML =
     kpi('', IC.cash, 'Sai no período', brl(soma(gs)), plural(gs.length,'lançamento')) +
     kpi('', IC.rep, 'Programado', brl(recs.reduce((s,x)=>s+(+x.r.valor||0),0)), plural(recs.length,'recorrência')) +
@@ -308,6 +349,8 @@ function kpisCal(porDia, gs, prevs, recs, nDias){
     kpi('warn', IC.cal, 'Dia mais pesado', maiorDia?dBR(maiorDia).slice(0,5):'—', maiorDia?`${brl(maiorVal)} · ${Object.keys(porDia).length} de ${nDias} dias com saída`:'nenhuma saída');
 }
 function renderCalendario(){
+  document.getElementById('calFiltros').innerHTML = chipsFiltro();
+  renderMarcosMes();
   if(calModo==='periodo') return renderAgenda();
   const [ano, mm] = mes.split('-').map(Number), n = ultimoDia(ano,mm), offset = new Date(ano,mm-1,1).getDay();
   const de = `${mes}-01`, ate = `${mes}-${pad(n)}`, porDia = itensPeriodo(de, ate);
@@ -316,8 +359,8 @@ function renderCalendario(){
   let cels = '';
   for(let i=0;i<offset;i++) cels += `<div class="cel fora"></div>`;
   for(let d=1; d<=n; d++){
-    const iso = `${mes}-${pad(d)}`, itens = porDia[iso] || [], tot = itens.reduce((s,i)=>s+(+i.g.valor||0),0);
-    cels += `<div class="cel ${iso===hojeISO()?'hoje':''}" onclick="novoNoDia('${iso}')" title="Clique para cadastrar um pagamento em ${dBR(iso)}">
+    const iso = `${mes}-${pad(d)}`, itens = porDia[iso] || [], tot = itens.reduce((s,i)=>s+valorItem(i),0);
+    cels += `<div class="cel ${iso===hojeISO()?'hoje':''}" onclick="escolherNoDia('${iso}')" title="Clique para cadastrar algo em ${dBR(iso)}">
       <div class="dia"><span class="n">${d}</span>${tot?`<span class="diatot">${brlK(tot)}</span>`:''}</div>
       ${itens.map(i=>itemCal(i,false)).join('')}
       <span class="add">${IC.plus}</span></div>`;
@@ -335,22 +378,25 @@ function renderAgenda(){
   const dias = Object.keys(porDia).sort();
   host.innerHTML = dias.length ? `<div class="agenda">${dias.map(d=>{
     const itens = porDia[d], dt = new Date(d+'T00:00:00');
-    return `<div class="agdia ${d===hojeISO()?'hoje':''}"><div class="agdata"><div class="d">${dt.getDate()}</div><div class="w">${DIAS[dt.getDay()]} · ${MES3[dt.getMonth()]}</div><div class="t">${brl(itens.reduce((s,i)=>s+(+i.g.valor||0),0))}</div></div>
+    const tot = itens.reduce((s,i)=>s+valorItem(i),0);
+    return `<div class="agdia ${d===hojeISO()?'hoje':''}"><div class="agdata"><div class="d">${dt.getDate()}</div><div class="w">${DIAS[dt.getDay()]} · ${MES3[dt.getMonth()]}</div>${tot?`<div class="t">${brl(tot)}</div>`:''}</div>
       <div class="agitens">${itens.map(i=>itemCal(i,true)).join('')}</div></div>`; }).join('')}</div>`
     : vazio(`Nada entre ${dBR(de)} e ${dBR(ate)}`);
 }
 
 /* ---------- LANÇAMENTOS ---------- */
 function renderLanc(){
-  const q = (document.getElementById('lancBusca')?.value||'').toLowerCase().trim();
-  let gs = doMes().slice().sort((a,b)=>(dataRef(b)||'').localeCompare(dataRef(a)||''));
-  if(q) gs = gs.filter(g=>[g.descricao,g.fornecedor,g.obs,cat(g.categoria_id)?.nome].join(' ').toLowerCase().includes(q));
+  const q = norm(document.getElementById('lancBusca')?.value||'').trim();
+  // com busca, procura em todos os meses
+  let gs = (q ? DB.gastos : doMes()).slice().sort((a,b)=>(dataRef(b)||'').localeCompare(dataRef(a)||''));
+  if(q) gs = gs.filter(g=>norm([g.descricao,g.fornecedor,g.obs,g.destino,cat(g.categoria_id)?.nome,String(g.valor),...anexosDe(g).map(a=>a.obs)].join(' ')).includes(q));
+  document.getElementById('lancInfo').textContent = q ? `${plural(gs.length,'resultado')} em todos os meses` : '';
   document.getElementById('kpiLanc').innerHTML =
     kpi('', IC.cash, 'Total', brl(soma(gs)), plural(gs.length,'lançamento')) +
     kpi('ok', IC.check, 'Pago', brl(soma(gs.filter(g=>g.pago))), plural(gs.filter(g=>g.pago).length,'quitado')) +
     kpi('warn', IC.clock, 'Em aberto', brl(soma(gs.filter(g=>!g.pago))), plural(gs.filter(g=>!g.pago).length,'conta')) +
     kpi('', IC.clip, 'Sem comprovante', gs.filter(g=>g.pago && !temAnexo(g)).length, 'pagos sem nenhum anexo');
-  document.getElementById('tbLanc').innerHTML = tabela(gs.map(linhaGasto), vazio(`Nenhum gasto em ${mesNome(mes)}`,'Clique em "Novo gasto" para começar.'));
+  document.getElementById('tbLanc').innerHTML = tabela(gs.map(linhaGasto), vazio(q?'Nada encontrado':`Nenhum gasto em ${mesNome(mes)}`, q?'Tente outra palavra.':'Clique em "Novo gasto" para começar.'));
 }
 
 /* ---------- CUSTOS FIXOS ---------- */
@@ -520,7 +566,7 @@ function renderReembolsos(){
 }
 
 /* ---------- METAS ---------- */
-const CORES_META = ['#B5563A','#D99A3D','#5E8C61','#4F6D8A','#8E3B26','#8A6A3B'];
+const CORES_META = ['#B5563A','#C9922F','#7A8B45','#8C5A36','#9A4A32','#C49A6C'];
 function calcMeta(m){
   const meta=+m.meta||0, ticket=+m.ticket||0, vendidos=+m.vendidos||0;
   const necessarios = ticket>0 ? Math.ceil(meta/ticket) : 0, faturado = vendidos*ticket, falta = Math.max(0, meta-faturado);
@@ -588,18 +634,6 @@ function renderPrev(){
     : vazio('Nada previsto ainda','Cadastre o que já se sabe que vem: mobília, equipamento, taxa de alvará.');
 }
 
-/* ---------- FORNECEDORES ---------- */
-function renderForn(){
-  const fs = DB.fornecedores;
-  document.getElementById('tbForn').innerHTML = fs.length ? `<div class="tw"><table><thead><tr><th>Fornecedor</th><th>Chave pix</th><th>Categoria</th><th class="num">Já pago</th><th class="num">Valor de referência</th><th></th></tr></thead><tbody>${fs.map(f=>{
-    const pagoTot = soma(DB.gastos.filter(g=>g.pago && (g.fornecedor||'').trim().toLowerCase()===f.nome.trim().toLowerCase()));
-    return `<tr><td><b>${esc(f.nome)}</b>${f.obs?`<div class="sub-line">${esc(f.obs)}</div>`:''}</td>
-    <td><span class="mono" style="font-size:12.5px">${esc(f.pix||'—')}</span>${f.pix?`<button class="iconbtn" onclick="copiar(this.dataset.v)" data-v="${esc(f.pix)}" aria-label="Copiar pix">${IC.copy}</button>`:''}</td>
-    <td>${chipCat(cat(f.categoria_id))}</td><td class="num">${pagoTot?brl(pagoTot):NADA}</td><td class="num">${f.valor?brl(f.valor):NADA}</td>
-    <td class="acts"><button class="btn xs ghost" onclick="gastoDoForn('${f.id}')">Lançar gasto</button><button class="iconbtn" onclick="openForn('${f.id}')" aria-label="Editar">${IC.edit}</button><button class="iconbtn" onclick="excluir('fornecedores','${f.id}')" aria-label="Excluir">${IC.del}</button></td></tr>`;}).join('')}</tbody></table></div>`
-    : vazio('Nenhum fornecedor salvo','Guarde nome, pix e valor de quem vocês pagam sempre.');
-}
-
 /* ---------- ARQUIVOS ---------- */
 const PASTAS = [
   {id:'contratos', nome:'Contratos', icon:'M9 12h6M9 16h6M8 4h8a2 2 0 012 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 012-2z'},
@@ -634,4 +668,16 @@ function renderArq(){
       <td>${anexosHTML(a, ['link 1','link 2'])}</td>
       <td class="acts"><button class="iconbtn" onclick="openArq('${a.id}')" aria-label="Editar">${IC.edit}</button><button class="iconbtn" onclick="excluir('arquivos','${a.id}')" aria-label="Excluir">${IC.del}</button></td></tr>`;}).join('')}</tbody></table></div>`
     : vazio(pastaSel?'Nada nesta pasta ainda':'Nenhum arquivo salvo','Guarde o link do contrato, do alvará, da planta. Com validade, o app avisa antes de vencer.')}</div>`;
+}
+
+// datas importantes do mês (embaixo do calendário)
+function renderMarcosMes(){
+  const host = document.getElementById('calMarcos'); if(!host) return;
+  const [a,m] = mes.split('-').map(Number), de = `${mes}-01`, ate = `${mes}-${pad(ultimoDia(a,m))}`;
+  const ms = DB.marcos.filter(x=>x.data && x.data<=ate && (x.data_fim||x.data)>=de).sort((x,y)=>x.data.localeCompare(y.data));
+  const evs = DB.eventos.filter(x=>x.data && x.data<=ate && (x.data_fim||x.data)>=de);
+  const itens = [...ms.map(x=>({d:x.data, h:`<div class="agitem marco" onclick="openMarco('${x.id}')"><div style="flex:1"><div class="n">${esc(x.titulo)}</div><div class="s">${dBR(x.data)}${x.data_fim?' a '+dBR(x.data_fim):''} · ${tipoMarcoTxt(x.tipo)}${x.obs?' · '+esc(x.obs):''}</div></div></div>`})),
+    ...evs.map(x=>({d:x.data, h:`<div class="agitem evento" onclick="abrirEvento('${x.id}')"><div style="flex:1"><div class="n">${esc(x.nome)}</div><div class="s">${dBR(x.data)} · evento${x.local?' · '+esc(x.local):''}</div></div><div class="v">${brl(resumoEvento(x).tot)}</div></div>`}))].sort((x,y)=>x.d.localeCompare(y.d));
+  host.innerHTML = `<header><h2>Datas importantes de ${MESES[m-1]}</h2><span class="spacer"></span><button class="btn sm ghost" onclick="openMarco(null)">${IC.plus}Nova data</button></header>
+    <div class="pbody"><div class="agitens">${itens.map(x=>x.h).join('') || '<div class="dica">Nenhuma data marcada neste mês. Clique em um dia do calendário e escolha "Data importante".</div>'}</div></div>`;
 }

@@ -6,10 +6,10 @@
 const SUPABASE_URL = 'https://vcygcxzextvgsufsdmjq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_h3eBSxlVdZ6ttM0b4WT1Aw_Bs-2-X9C';
 
-const TABELAS = ['categorias','pagadores','gastos','previsoes','fornecedores','arquivos','recorrencias','metas'];
+const TABELAS = ['categorias','pagadores','gastos','previsoes','fornecedores','arquivos','recorrencias','metas','eventos','evento_custos','atas','marcos'];
 const online = !!(SUPABASE_URL && SUPABASE_KEY);
 let erroBanco = '';
-let DB = { categorias:[], pagadores:[], gastos:[], previsoes:[], fornecedores:[], arquivos:[], recorrencias:[], metas:[] };
+let DB = { categorias:[], pagadores:[], gastos:[], previsoes:[], fornecedores:[], arquivos:[], recorrencias:[], metas:[], eventos:[], evento_custos:[], atas:[], marcos:[] };
 
 /* ---------- utilidades ---------- */
 const pad = n => String(n).padStart(2,'0');
@@ -242,8 +242,12 @@ function lembretes(){
   const recs = recPendentes(addDias(hoje,-60), limite);
   const reemb = DB.gastos.filter(reembolsoPendente);
   const docs = DB.arquivos.filter(a=>a.validade && diasAte(a.validade)<=30).sort((a,b)=>a.validade.localeCompare(b.validade));
+  const datas = [
+    ...DB.marcos.filter(m=>m.data && m.data>=hoje && diasAte(m.data)<=14).map(m=>({tipo:'marco', x:m, data:m.data})),
+    ...DB.eventos.filter(e=>e.data && e.data>=hoje && diasAte(e.data)<=14).map(e=>({tipo:'evento', x:e, data:e.data}))
+  ].sort((a,b)=>a.data.localeCompare(b.data));
   const urgentes = vencidos.length + recs.filter(x=>x.data<hoje).length + proximos.filter(g=>diasAte(g.vencimento)<=3).length + recs.filter(x=>x.data>=hoje && diasAte(x.data)<=3).length;
-  return {comp, vencidos, proximos, recs, reemb, docs, total: comp.length + vencidos.length + proximos.length + recs.length + reemb.length + docs.length, urgentes};
+  return {comp, vencidos, proximos, recs, reemb, docs, datas, total: comp.length + vencidos.length + proximos.length + recs.length + reemb.length + docs.length + datas.length, urgentes};
 }
 
 /* ---------- persistência ---------- */
@@ -296,6 +300,14 @@ async function salvar(tabela, reg){
     render();
     return false;
   }
+}
+async function inserirVarios(tabela, regs){
+  if(!regs.length) return true;
+  if(online){
+    try{ await api(tabela,'POST',regs); }
+    catch(e){ erroBanco = ((e && e.message) || String(e)).slice(0,300); aviso('O banco não aceitou a importação.'); render(); return false; }
+  }
+  DB[tabela] = [...DB[tabela], ...regs]; return true;
 }
 async function remover(tabela, id){
   const antes = DB[tabela];

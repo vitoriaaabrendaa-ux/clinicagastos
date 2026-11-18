@@ -466,21 +466,7 @@ async function virarGasto(id){
   await remover('previsoes', id); render(); aviso(`${p.descricao} virou lançamento em aberto.`);
 }
 
-/* ---------- fornecedor ---------- */
-function openForn(id){
-  const f = id ? DB.fornecedores.find(x=>x.id===id) : null;
-  abrir(`${hdr(f?'Editar fornecedor':'Novo fornecedor')}<div class="mbody"><div class="fgrid">
-      <div class="f full"><label>Nome</label><input id="n-nome" value="${esc(f?.nome)}" placeholder="Marcenaria Souza"></div>
-      <div class="f full"><label>Chave pix</label><input id="n-pix" value="${esc(f?.pix)}" placeholder="cnpj, telefone ou aleatória"></div>
-      <div class="f"><label>Valor de referência</label><input id="n-valor" type="number" step="0.01" value="${f?.valor??''}" placeholder="0,00"></div>
-      <div class="f"><label>Categoria</label><select id="n-cat">${opcoesCat(f?.categoria_id)}</select></div>
-      <div class="f full"><label>Observação</label><textarea id="n-obs" placeholder="Prazo, contato, condição combinada">${esc(f?.obs)}</textarea></div>
-    </div></div>${pe(`salvarForn('${id||''}')`,'Salvar fornecedor')}`);
-}
-async function salvarForn(id){
-  const nome = val('n-nome'); if(!nome) return aviso('O fornecedor precisa de um nome.');
-  if(await salvar('fornecedores',{id:id||novoId(), nome, pix:val('n-pix')||null, valor:num('n-valor')||null, categoria_id:val('n-cat')||null, obs:val('n-obs')||null})){ fechar(); render(); aviso('Fornecedor salvo.'); }
-}
+/* ---------- fornecedor (formulário em extras.js) ---------- */
 function gastoDoForn(id){
   const f = DB.fornecedores.find(x=>x.id===id); if(!f) return;
   openGasto();
@@ -513,7 +499,7 @@ async function salvarArq(id){
 
 /* ---------- comuns ---------- */
 async function excluir(tabela, id){
-  const nomes = {gastos:'este gasto',categorias:'esta categoria',previsoes:'este orçamento',fornecedores:'este fornecedor',arquivos:'este arquivo',recorrencias:'esta recorrência (os gastos já lançados ficam)',metas:'este produto'};
+  const nomes = {marcos:'esta data',evento_custos:'este custo do evento',gastos:'este gasto',categorias:'esta categoria',previsoes:'este orçamento',fornecedores:'este fornecedor',arquivos:'este arquivo',recorrencias:'esta recorrência (os gastos já lançados ficam)',metas:'este produto'};
   if(!confirm(`Excluir ${nomes[tabela]||'este item'}? Não dá para desfazer.`)) return;
   if(await remover(tabela, id)){ fechar(); render(); aviso('Excluído.'); } else render();
 }
